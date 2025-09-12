@@ -618,8 +618,9 @@ function App() {
                     const name = prompt('What\'s the name?');
                     const emoji = prompt('What emoji? (e.g., 🍕)');
                     const person = prompt('Who\'s favorite? (Imran/Ajsa)');
-                    if (name && emoji && person) {
-                      addFavorite('custom', name, person, emoji);
+                    const type = prompt('What type? (e.g., Food, Movie, Place, etc.)');
+                    if (name && emoji && person && type) {
+                      addFavorite(type, name, person, emoji);
                     }
                   }}
                   className="bg-slate-800/50 backdrop-blur-sm rounded-2xl p-4 text-center border border-blue-500/30 hover:bg-slate-700/50 transition-colors duration-200"
@@ -689,25 +690,35 @@ function App() {
                   <p className="text-white/70 text-sm">No notes yet. Start sharing your thoughts!</p>
                 </div>
               ) : (
-                loveNotes.map((note) => (
-                  <div key={note.id} className={`p-4 rounded-2xl border border-blue-500/30 ${
-                    note.from_user === currentUser 
-                      ? 'bg-blue-600/20 ml-8' 
-                      : 'bg-blue-500/20 mr-8'
-                }`}>
-                  <div className="flex items-center justify-between mb-2">
-                      <span className="text-white font-semibold text-sm">{note.from_user}</span>
-                      <span className="text-white/60 text-xs">
-                        {new Date(note.created_at).toLocaleTimeString('en-US', { 
-                          hour: '2-digit', 
-                          minute: '2-digit',
-                          hour12: false 
-                        })}
-                      </span>
-                  </div>
-                  <p className="text-white/90 text-sm">{note.message}</p>
+                <div className="space-y-4">
+                  {loveNotes.map((note) => (
+                    <div 
+                      key={note.id} 
+                      className={`paper-note p-6 relative ${
+                        note.from_user === currentUser 
+                          ? 'note-from-imran' 
+                          : 'note-from-ajsa'
+                      }`}
+                    >
+                      <div className="note-pin"></div>
+                      <div className="flex items-center justify-between mb-3">
+                        <span className="handwritten-text font-bold text-lg text-gray-800">
+                          {note.from_user}
+                        </span>
+                        <span className="note-timestamp">
+                          {new Date(note.created_at).toLocaleTimeString('en-US', { 
+                            hour: '2-digit', 
+                            minute: '2-digit',
+                            hour12: false 
+                          })}
+                        </span>
+                      </div>
+                      <p className="handwritten-text text-gray-700 text-base leading-relaxed">
+                        {note.message}
+                      </p>
+                    </div>
+                  ))}
                 </div>
-                ))
               )}
             </div>
           )}
