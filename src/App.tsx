@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Heart, Clock, Camera, MessageCircle, Calendar, Star, MapPin, Coffee, Gamepad2, Plus, Send } from 'lucide-react';
+import { supabase, Note, Movie, Favorite, BucketListItem, UserMood } from './supabase';
 
 // Login Component - moved outside to prevent re-creation on every render
 const LoginPage = ({ onLogin }: { onLogin: (username: string, password: string) => boolean }) => {
@@ -84,10 +85,10 @@ function App() {
   const [moodTextImran, setMoodTextImran] = useState('');
   const [moodTextAjsa, setMoodTextAjsa] = useState('');
   const [newNote, setNewNote] = useState('');
-  const [favorites, setFavorites] = useState<Array<{type: string, name: string, person: string, emoji: string}>>([]);
-  const [bucketList, setBucketList] = useState<string[]>([]);
-  const [loveNotes, setLoveNotes] = useState<Array<{from: string, message: string, time: string}>>([]);
-  const [movies, setMovies] = useState<Array<{title: string, addedBy: string, time: string}>>([]);
+  const [favorites, setFavorites] = useState<Favorite[]>([]);
+  const [bucketList, setBucketList] = useState<BucketListItem[]>([]);
+  const [loveNotes, setLoveNotes] = useState<Note[]>([]);
+  const [movies, setMovies] = useState<Movie[]>([]);
   const [weather, setWeather] = useState({
     manchester: { temp: 12, condition: 'cloudy', icon: '☁️' },
     texas: { temp: 28, condition: 'sunny', icon: '☀️' }
@@ -102,74 +103,102 @@ function App() {
     }
   }, []);
 
-  // Load data from localStorage on component mount
+  // Load data from Supabase on component mount
   useEffect(() => {
-    const savedFavorites = localStorage.getItem('together-favorites');
-    const savedBucketList = localStorage.getItem('together-bucket-list');
-    const savedLoveNotes = localStorage.getItem('together-notes');
-    const savedMovies = localStorage.getItem('together-movies');
-    const savedMoodImran = localStorage.getItem('together-mood-imran');
-    const savedMoodAjsa = localStorage.getItem('together-mood-ajsa');
-    const savedMoodTextImran = localStorage.getItem('together-mood-text-imran');
-    const savedMoodTextAjsa = localStorage.getItem('together-mood-text-ajsa');
-
-    if (savedFavorites) setFavorites(JSON.parse(savedFavorites));
-    if (savedBucketList) setBucketList(JSON.parse(savedBucketList));
-    if (savedLoveNotes) setLoveNotes(JSON.parse(savedLoveNotes));
-    if (savedMovies) setMovies(JSON.parse(savedMovies));
-    if (savedMoodImran) setMoodImran(savedMoodImran);
-    if (savedMoodAjsa) setMoodAjsa(savedMoodAjsa);
-    if (savedMoodTextImran) setMoodTextImran(savedMoodTextImran);
-    if (savedMoodTextAjsa) setMoodTextAjsa(savedMoodTextAjsa);
+    loadAllData();
   }, []);
 
-  // Reload shared data when user changes (for notes, movies, etc.)
+  // Reload shared data when user changes
   useEffect(() => {
     if (currentUser) {
-      const savedLoveNotes = localStorage.getItem('together-notes');
-      const savedMovies = localStorage.getItem('together-movies');
-      const savedFavorites = localStorage.getItem('together-favorites');
-      const savedBucketList = localStorage.getItem('together-bucket-list');
-
-      if (savedLoveNotes) setLoveNotes(JSON.parse(savedLoveNotes));
-      if (savedMovies) setMovies(JSON.parse(savedMovies));
-      if (savedFavorites) setFavorites(JSON.parse(savedFavorites));
-      if (savedBucketList) setBucketList(JSON.parse(savedBucketList));
+      loadAllData();
     }
   }, [currentUser]);
 
-  // Save data to localStorage whenever it changes
+  // Supabase functions
+  const loadAllData = async () => {
+    await Promise.all([
+      loadNotes(),
+      loadMovies(),
+      loadFavorites(),
+      loadBucketList(),
+      loadMoods()
+    ]);
+  };
+
+  const loadNotes = async () => {
+    const { data, error } = await supabase
+      .from('notes')
+      .select('*')
+      .order('created_at', { ascending: false });
+    
+    if (error) console.error('Error loading notes:', error);
+    else setLoveNotes(data || []);
+  };
+
+  const loadMovies = async () => {
+    const { data, error } = await supabase
+      .from('movies')
+      .select('*')
+      .order('created_at', { ascending: false });
+    
+    if (error) console.error('Error loading movies:', error);
+    else setMovies(data || []);
+  };
+
+  const loadFavorites = async () => {
+    const { data, error } = await supabase
+      .from('favorites')
+      .select('*')
+      .order('created_at', { ascending: false });
+    
+    if (error) console.error('Error loading favorites:', error);
+    else setFavorites(data || []);
+  };
+
+  const loadBucketList = async () => {
+    const { data, error } = await supabase
+      .from('bucket_list')
+      .select('*')
+      .order('created_at', { ascending: false });
+    
+    if (error) console.error('Error loading bucket list:', error);
+    else setBucketList(data || []);
+  };
+
+  const loadMoods = async () => {
+    const { data, error } = await supabase
+      .from('user_moods')
+      .select('*');
+    
+    if (error) console.error('Error loading moods:', error);
+    else if (data) {
+      const imranMood = data.find(m => m.user_name === 'Imran');
+      const ajsaMood = data.find(m => m.user_name === 'Ajsa');
+      
+      if (imranMood) {
+        setMoodImran(imranMood.mood_emoji);
+        setMoodTextImran(imranMood.mood_text);
+      }
+      if (ajsaMood) {
+        setMoodAjsa(ajsaMood.mood_emoji);
+        setMoodTextAjsa(ajsaMood.mood_text);
+      }
+    }
+  };
+
+  // Save moods to Supabase when they change
   useEffect(() => {
-    localStorage.setItem('together-favorites', JSON.stringify(favorites));
-  }, [favorites]);
+    if (currentUser === 'Imran') {
+      saveMood('Imran', moodImran, moodTextImran);
+    }
+  }, [moodImran, moodTextImran, currentUser]);
 
   useEffect(() => {
-    localStorage.setItem('together-bucket-list', JSON.stringify(bucketList));
-  }, [bucketList]);
-
-  useEffect(() => {
-    localStorage.setItem('together-notes', JSON.stringify(loveNotes));
-  }, [loveNotes]);
-
-  useEffect(() => {
-    localStorage.setItem('together-movies', JSON.stringify(movies));
-  }, [movies]);
-
-  useEffect(() => {
-    localStorage.setItem('together-mood-imran', moodImran);
-  }, [moodImran]);
-
-  useEffect(() => {
-    localStorage.setItem('together-mood-ajsa', moodAjsa);
-  }, [moodAjsa]);
-
-  useEffect(() => {
-    localStorage.setItem('together-mood-text-imran', moodTextImran);
-  }, [moodTextImran]);
-
-  useEffect(() => {
-    localStorage.setItem('together-mood-text-ajsa', moodTextAjsa);
-  }, [moodTextAjsa]);
+    if (currentUser === 'Ajsa') {
+      saveMood('Ajsa', moodAjsa, moodTextAjsa);
+    }
+  }, [moodAjsa, moodTextAjsa, currentUser]);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -212,28 +241,85 @@ function App() {
     "Add a classic movie to our list",
   ];
 
-  // Functional handlers
-  const addFavorite = (type: string, name: string, person: string, emoji: string) => {
-    setFavorites([...favorites, { type, name, person, emoji }]);
-  };
-
-  const addBucketListItem = (item: string) => {
-    setBucketList([...bucketList, item]);
-  };
-
-  const addLoveNote = (from: string, message: string) => {
-    const now = new Date();
-    const timeAgo = now.getTime() - now.getTime();
-    const timeString = 'Just now';
+  // Supabase CRUD functions
+  const addFavorite = async (type: string, name: string, person: string, emoji: string) => {
+    const { data, error } = await supabase
+      .from('favorites')
+      .insert([{ type, name, person, emoji }])
+      .select();
     
-    setLoveNotes([{ from, message, time: timeString }, ...loveNotes]);
+    if (error) console.error('Error adding favorite:', error);
+    else if (data) {
+      setFavorites([data[0], ...favorites]);
+    }
   };
 
-  const addMovie = (title: string, addedBy: string) => {
-    const now = new Date();
-    const timeString = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+  const addBucketListItem = async (item: string) => {
+    const { data, error } = await supabase
+      .from('bucket_list')
+      .insert([{ item }])
+      .select();
     
-    setMovies([{ title, addedBy, time: timeString }, ...movies]);
+    if (error) console.error('Error adding bucket list item:', error);
+    else if (data) {
+      setBucketList([data[0], ...bucketList]);
+    }
+  };
+
+  const addLoveNote = async (from: string, message: string) => {
+    const { data, error } = await supabase
+      .from('notes')
+      .insert([{ from_user: from, message }])
+      .select();
+    
+    if (error) console.error('Error adding note:', error);
+    else if (data) {
+      setLoveNotes([data[0], ...loveNotes]);
+    }
+  };
+
+  const addMovie = async (title: string, addedBy: string) => {
+    const { data, error } = await supabase
+      .from('movies')
+      .insert([{ title, added_by: addedBy }])
+      .select();
+    
+    if (error) console.error('Error adding movie:', error);
+    else if (data) {
+      setMovies([data[0], ...movies]);
+    }
+  };
+
+  const saveMood = async (userName: string, emoji: string, text: string) => {
+    const { error } = await supabase
+      .from('user_moods')
+      .upsert([{ user_name: userName, mood_emoji: emoji, mood_text: text }]);
+    
+    if (error) console.error('Error saving mood:', error);
+  };
+
+  const deleteFavorite = async (id: string) => {
+    const { error } = await supabase
+      .from('favorites')
+      .delete()
+      .eq('id', id);
+    
+    if (error) console.error('Error deleting favorite:', error);
+    else {
+      setFavorites(favorites.filter(f => f.id !== id));
+    }
+  };
+
+  const deleteBucketItem = async (id: string) => {
+    const { error } = await supabase
+      .from('bucket_list')
+      .delete()
+      .eq('id', id);
+    
+    if (error) console.error('Error deleting bucket item:', error);
+    else {
+      setBucketList(bucketList.filter(item => item.id !== id));
+    }
   };
 
   const sendLoveNote = () => {
@@ -416,10 +502,16 @@ function App() {
                   Movies we should watch eventually...
                 </p>
                 <div className="space-y-2 mb-3">
-                  {movies.slice(0, 3).map((movie, index) => (
-                    <div key={index} className="bg-slate-800/50 rounded-lg p-2 flex justify-between items-center">
+                  {movies.slice(0, 3).map((movie) => (
+                    <div key={movie.id} className="bg-slate-800/50 rounded-lg p-2 flex justify-between items-center">
                       <span className="text-white text-sm">{movie.title}</span>
-                      <span className="text-blue-300 text-xs">{movie.addedBy} • {movie.time}</span>
+                      <span className="text-blue-300 text-xs">
+                        {movie.added_by} • {new Date(movie.created_at).toLocaleTimeString('en-US', { 
+                          hour: '2-digit', 
+                          minute: '2-digit',
+                          hour12: false 
+                        })}
+                      </span>
                     </div>
                   ))}
                 </div>
@@ -471,13 +563,13 @@ function App() {
               </div>
 
               <div className="grid grid-cols-2 gap-3">
-                {favorites.map((item, index) => (
-                  <div key={index} className="bg-slate-800/50 backdrop-blur-sm rounded-2xl p-4 text-center border border-blue-500/30">
+                {favorites.map((item) => (
+                  <div key={item.id} className="bg-slate-800/50 backdrop-blur-sm rounded-2xl p-4 text-center border border-blue-500/30">
                     <div className="text-3xl mb-2">{item.emoji}</div>
                     <h3 className="text-white font-semibold text-sm">{item.name}</h3>
                     <p className="text-white/70 text-xs mt-1">{item.person}'s favorite</p>
                     <button 
-                      onClick={() => setFavorites(favorites.filter((_, i) => i !== index))}
+                      onClick={() => deleteFavorite(item.id)}
                       className="text-red-300 text-xs mt-2 hover:text-red-200"
                     >
                       Remove
@@ -516,15 +608,15 @@ function App() {
                   <p className="text-white/70 text-sm">No dreams added yet. Start adding your bucket list items!</p>
                 </div>
               ) : (
-                bucketList.map((item, index) => (
-                  <div key={index} className="bg-slate-800/50 backdrop-blur-sm rounded-2xl p-4 border border-blue-500/30">
+                bucketList.map((item) => (
+                  <div key={item.id} className="bg-slate-800/50 backdrop-blur-sm rounded-2xl p-4 border border-blue-500/30">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center">
                         <div className="w-6 h-6 border-2 border-pink-300 rounded-full mr-3 flex-shrink-0"></div>
-                        <p className="text-white font-medium">{item}</p>
+                        <p className="text-white font-medium">{item.item}</p>
                       </div>
                       <button 
-                        onClick={() => setBucketList(bucketList.filter((_, i) => i !== index))}
+                        onClick={() => deleteBucketItem(item.id)}
                         className="text-red-300 text-sm hover:text-red-200"
                       >
                         ✕
@@ -561,15 +653,21 @@ function App() {
                   <p className="text-white/70 text-sm">No notes yet. Start sharing your thoughts!</p>
                 </div>
               ) : (
-                loveNotes.map((note, index) => (
-                  <div key={index} className={`p-4 rounded-2xl border border-blue-500/30 ${
-                    note.from === currentUser 
+                loveNotes.map((note) => (
+                  <div key={note.id} className={`p-4 rounded-2xl border border-blue-500/30 ${
+                    note.from_user === currentUser 
                       ? 'bg-blue-600/20 ml-8' 
                       : 'bg-blue-500/20 mr-8'
                   }`}>
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-white font-semibold text-sm">{note.from}</span>
-                      <span className="text-white/60 text-xs">{note.time}</span>
+                      <span className="text-white font-semibold text-sm">{note.from_user}</span>
+                      <span className="text-white/60 text-xs">
+                        {new Date(note.created_at).toLocaleTimeString('en-US', { 
+                          hour: '2-digit', 
+                          minute: '2-digit',
+                          hour12: false 
+                        })}
+                      </span>
                     </div>
                     <p className="text-white/90 text-sm">{note.message}</p>
                   </div>
