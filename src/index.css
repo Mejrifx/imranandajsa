@@ -108,13 +108,13 @@ body {
   50% { box-shadow: 0 0 20px rgba(59, 130, 246, 0.6), 0 0 30px rgba(59, 130, 246, 0.4); }
 }
 
-/* Add wave animation to cards */
-.bg-white\/10 {
+/* Add wave animation to cards - only for specific elements */
+.bg-white\/10:not(.movie-section) {
   position: relative;
   overflow: hidden;
 }
 
-.bg-white\/10::before {
+.bg-white\/10:not(.movie-section)::before {
   content: '';
   position: absolute;
   top: 0;
@@ -128,6 +128,15 @@ body {
 /* Floating animation for interactive elements */
 .hover\:scale-105:hover {
   animation: float 2s ease-in-out infinite;
+}
+
+/* Ensure movie section has no animations */
+.movie-section {
+  animation: none !important;
+}
+
+.movie-section * {
+  animation: none !important;
 }
 
 /* Ocean wave effect for buttons */

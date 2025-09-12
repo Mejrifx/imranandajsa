@@ -164,7 +164,6 @@ function App() {
       timeZone: timezone,
       hour: '2-digit',
       minute: '2-digit',
-      second: '2-digit',
       hour12: false
     });
   };
@@ -352,13 +351,13 @@ function App() {
               </div>
 
               {/* Movies Section */}
-              <div className="bg-blue-900/30 backdrop-blur-sm rounded-2xl p-4 border border-blue-500/30">
+              <div className="bg-blue-900/30 backdrop-blur-sm rounded-2xl p-4 border border-blue-500/30 movie-section">
                 <h3 className="text-white font-semibold mb-3 flex items-center">
                   <Star size={18} className="mr-2 text-yellow-300" />
                   Movies We Should Watch
                 </h3>
                 <p className="text-white/90 text-sm leading-relaxed mb-3">
-                  {getRandomPrompt()}
+                  Movies we should watch eventually...
                 </p>
                 <div className="space-y-2 mb-3">
                   {movies.slice(0, 3).map((movie, index) => (
