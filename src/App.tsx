@@ -248,6 +248,12 @@ function App() {
   const addFavorite = async (type: string, name: string, person: string, emoji: string) => {
     console.log('Adding favorite:', { type, name, person, emoji });
     
+    // Validate person field before sending to Supabase
+    if (person !== 'Imran' && person !== 'Ajsa') {
+      showToastNotification('❌ Person must be exactly "Imran" or "Ajsa"');
+      return;
+    }
+    
     const { data, error } = await supabase
       .from('favorites')
       .insert([{ type, name, person, emoji }])
@@ -314,7 +320,9 @@ function App() {
     
     const { error } = await supabase
       .from('user_moods')
-      .upsert([{ user_name: userName, mood_emoji: emoji, mood_text: text }]);
+      .upsert([{ user_name: userName, mood_emoji: emoji, mood_text: text }], {
+        onConflict: 'user_name'
+      });
     
     if (error) {
       console.error('Error saving mood:', error);
@@ -659,10 +667,16 @@ function App() {
                   onClick={() => {
                     const name = prompt('What\'s the name?');
                     const emoji = prompt('What emoji? (e.g., 🍕)');
-                    const person = prompt('Who\'s favorite? (Imran/Ajsa)');
+                    const person = prompt('Who\'s favorite? (Type exactly: Imran or Ajsa)');
                     const type = prompt('What type? (e.g., Food, Movie, Place, etc.)');
-                    if (name && emoji && person && type) {
+                    
+                    // Validate person field
+                    if (name && emoji && type && person && (person === 'Imran' || person === 'Ajsa')) {
                       addFavorite(type, name, person, emoji);
+                    } else if (person && person !== 'Imran' && person !== 'Ajsa') {
+                      showToastNotification('❌ Person must be exactly "Imran" or "Ajsa"');
+                    } else if (!name || !emoji || !type || !person) {
+                      showToastNotification('❌ Please fill in all fields');
                     }
                   }}
                   className="bg-slate-800/50 backdrop-blur-sm rounded-2xl p-4 text-center border border-blue-500/30 hover:bg-slate-700/50 transition-colors duration-200"
