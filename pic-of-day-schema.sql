@@ -5,7 +5,7 @@
 CREATE TABLE IF NOT EXISTS daily_photos (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   user_name TEXT NOT NULL CHECK (user_name IN ('Imran', 'Ajsa')),
-  photo_url TEXT NOT NULL,
+  photo_url TEXT NOT NULL, -- Can store URLs or base64 data URLs
   caption TEXT DEFAULT '',
   photo_date DATE NOT NULL DEFAULT CURRENT_DATE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),

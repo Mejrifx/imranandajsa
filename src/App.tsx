@@ -96,6 +96,7 @@ function App() {
   });
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
 
   // Check for existing login session
   useEffect(() => {
@@ -376,6 +377,48 @@ function App() {
         !(photo.user_name === currentUser && photo.photo_date === today)
       )]);
       showToastNotification('📸 Pic of the day added!');
+    }
+  };
+
+  const handlePhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      showToastNotification('❌ Please select an image file');
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      showToastNotification('❌ Image too large. Please select an image under 5MB');
+      return;
+    }
+
+    setIsUploadingPhoto(true);
+
+    try {
+      // Convert file to base64 data URL
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        const dataUrl = e.target?.result as string;
+        
+        // Ask for caption
+        const caption = prompt('Add a caption (optional):') || '';
+        
+        // Add the photo
+        await addDailyPhoto(dataUrl, caption);
+        
+        // Reset the input
+        event.target.value = '';
+        setIsUploadingPhoto(false);
+      };
+      reader.readAsDataURL(file);
+    } catch (error) {
+      console.error('Error processing image:', error);
+      showToastNotification('❌ Error processing image. Please try again.');
+      setIsUploadingPhoto(false);
     }
   };
 
@@ -916,22 +959,41 @@ function App() {
                 </h3>
                 <p className="text-white/80 text-sm mb-4">Share your daily moments</p>
                 
-                {/* Add Photo Button */}
-                <button 
-                  onClick={() => {
-                    const photoUrl = prompt('Enter photo URL (e.g., https://example.com/photo.jpg):');
-                    const caption = prompt('Add a caption (optional):');
-                    if (photoUrl && photoUrl.trim()) {
-                      addDailyPhoto(photoUrl.trim(), caption || '');
-                    } else if (photoUrl !== null) {
-                      showToastNotification('❌ Please enter a valid photo URL');
-                    }
-                  }}
-                  className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white py-3 rounded-xl font-semibold hover:scale-[1.02] transition-all duration-300 shadow-lg hover:shadow-blue-500/25 flex items-center justify-center gap-2 mb-4"
-                >
-                  <Camera className="w-4 h-4" />
-                  Add Today's Pic
-              </button>
+                {/* Add Photo Section */}
+                <div className="mb-4">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    onChange={handlePhotoUpload}
+                    className="hidden"
+                    id="photo-upload"
+                    multiple={false}
+                  />
+                  <label
+                    htmlFor="photo-upload"
+                    className={`w-full py-3 rounded-xl font-semibold transition-all duration-300 shadow-lg flex items-center justify-center gap-2 cursor-pointer ${
+                      isUploadingPhoto 
+                        ? 'bg-gray-600 text-gray-300 cursor-not-allowed' 
+                        : 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white hover:scale-[1.02] hover:shadow-blue-500/25'
+                    }`}
+                  >
+                    {isUploadingPhoto ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-gray-300 border-t-transparent rounded-full animate-spin"></div>
+                        Processing...
+                      </>
+                    ) : (
+                      <>
+                        <Camera className="w-4 h-4" />
+                        Add Today's Pic
+                      </>
+                    )}
+                  </label>
+                  <p className="text-xs text-blue-200/80 text-center mt-2">
+                    Tap to take a photo or select from gallery
+                  </p>
+                </div>
 
                 {/* Display Recent Photos */}
                 {dailyPhotos.length === 0 ? (
