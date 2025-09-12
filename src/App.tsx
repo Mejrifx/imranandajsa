@@ -23,7 +23,7 @@ const LoginPage = ({ onLogin }: { onLogin: (username: string, password: string) 
           <div className="flex items-center justify-center mb-4">
             <Heart className="text-blue-300 mr-2" size={32} />
             <h1 className="text-3xl font-bold text-blue-200">
-              Together
+              Distance doesn't matter...
             </h1>
             <Heart className="text-blue-300 ml-2" size={32} />
           </div>
