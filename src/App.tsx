@@ -95,6 +95,7 @@ function App() {
   });
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
+  const [moodTextTimeout, setMoodTextTimeout] = useState<NodeJS.Timeout | null>(null);
 
   // Check for existing login session
   useEffect(() => {
@@ -191,13 +192,13 @@ function App() {
 
   // Save moods to Supabase when they change
   useEffect(() => {
-    if (currentUser === 'Imran') {
+    if (currentUser === 'Imran' && moodImran) {
       saveMood('Imran', moodImran, moodTextImran);
     }
   }, [moodImran, moodTextImran, currentUser]);
 
   useEffect(() => {
-    if (currentUser === 'Ajsa') {
+    if (currentUser === 'Ajsa' && moodAjsa) {
       saveMood('Ajsa', moodAjsa, moodTextAjsa);
     }
   }, [moodAjsa, moodTextAjsa, currentUser]);
@@ -245,17 +246,24 @@ function App() {
 
   // Supabase CRUD functions
   const addFavorite = async (type: string, name: string, person: string, emoji: string) => {
+    console.log('Adding favorite:', { type, name, person, emoji });
+    
     const { data, error } = await supabase
       .from('favorites')
       .insert([{ type, name, person, emoji }])
       .select();
     
+    console.log('Supabase response:', { data, error });
+    
     if (error) {
       console.error('Error adding favorite:', error);
-      showToastNotification('❌ Failed to add favorite. Try again.');
-    } else if (data) {
+      showToastNotification(`❌ Failed to add favorite: ${error.message}`);
+    } else if (data && data.length > 0) {
       setFavorites([data[0], ...favorites]);
       showToastNotification('⭐ Favorite added successfully!');
+    } else {
+      console.error('No data returned from Supabase');
+      showToastNotification('❌ Failed to add favorite. No data returned.');
     }
   };
 
@@ -302,11 +310,18 @@ function App() {
   };
 
   const saveMood = async (userName: string, emoji: string, text: string) => {
+    console.log('Saving mood:', { userName, emoji, text });
+    
     const { error } = await supabase
       .from('user_moods')
       .upsert([{ user_name: userName, mood_emoji: emoji, mood_text: text }]);
     
-    if (error) console.error('Error saving mood:', error);
+    if (error) {
+      console.error('Error saving mood:', error);
+      showToastNotification(`❌ Failed to save mood: ${error.message}`);
+    } else {
+      console.log('Mood saved successfully');
+    }
   };
 
   const deleteFavorite = async (id: string) => {
@@ -505,7 +520,15 @@ function App() {
                   {['😊', '😍', '🥰', '😴', '😢', '🤗'].map((mood) => (
                     <button
                       key={mood}
-                      onClick={() => currentUser === 'Imran' ? setMoodImran(mood) : setMoodAjsa(mood)}
+                      onClick={() => {
+                        if (currentUser === 'Imran') {
+                          setMoodImran(mood);
+                          saveMood('Imran', mood, moodTextImran);
+                        } else {
+                          setMoodAjsa(mood);
+                          saveMood('Ajsa', mood, moodTextAjsa);
+                        }
+                      }}
                       className={`p-3 rounded-xl text-2xl transition-all duration-200 hover:scale-110 ${
                         (currentUser === 'Imran' ? moodImran === mood : moodAjsa === mood) 
                           ? 'bg-blue-500/30 scale-110' 
@@ -521,7 +544,26 @@ function App() {
                   <input
                     type="text"
                     value={currentUser === 'Imran' ? moodTextImran : moodTextAjsa}
-                    onChange={(e) => currentUser === 'Imran' ? setMoodTextImran(e.target.value) : setMoodTextAjsa(e.target.value)}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      if (currentUser === 'Imran') {
+                        setMoodTextImran(value);
+                        // Debounce the save
+                        if (moodTextTimeout) clearTimeout(moodTextTimeout);
+                        const timeout = setTimeout(() => {
+                          saveMood('Imran', moodImran, value);
+                        }, 1000);
+                        setMoodTextTimeout(timeout);
+                      } else {
+                        setMoodTextAjsa(value);
+                        // Debounce the save
+                        if (moodTextTimeout) clearTimeout(moodTextTimeout);
+                        const timeout = setTimeout(() => {
+                          saveMood('Ajsa', moodAjsa, value);
+                        }, 1000);
+                        setMoodTextTimeout(timeout);
+                      }
+                    }}
                     placeholder="How are you feeling today?"
                     className="w-full bg-slate-700/50 border border-blue-500/30 rounded-xl px-4 py-2 text-white placeholder-white/60 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
                   />
