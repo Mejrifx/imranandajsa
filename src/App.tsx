@@ -88,6 +88,10 @@ function App() {
   const [bucketList, setBucketList] = useState<string[]>([]);
   const [loveNotes, setLoveNotes] = useState<Array<{from: string, message: string, time: string}>>([]);
   const [movies, setMovies] = useState<Array<{title: string, addedBy: string, time: string}>>([]);
+  const [weather, setWeather] = useState({
+    manchester: { temp: 12, condition: 'cloudy', icon: '☁️' },
+    texas: { temp: 28, condition: 'sunny', icon: '☀️' }
+  });
 
   // Check for existing login session
   useEffect(() => {
@@ -118,6 +122,21 @@ function App() {
     if (savedMoodTextImran) setMoodTextImran(savedMoodTextImran);
     if (savedMoodTextAjsa) setMoodTextAjsa(savedMoodTextAjsa);
   }, []);
+
+  // Reload shared data when user changes (for notes, movies, etc.)
+  useEffect(() => {
+    if (currentUser) {
+      const savedLoveNotes = localStorage.getItem('together-notes');
+      const savedMovies = localStorage.getItem('together-movies');
+      const savedFavorites = localStorage.getItem('together-favorites');
+      const savedBucketList = localStorage.getItem('together-bucket-list');
+
+      if (savedLoveNotes) setLoveNotes(JSON.parse(savedLoveNotes));
+      if (savedMovies) setMovies(JSON.parse(savedMovies));
+      if (savedFavorites) setFavorites(JSON.parse(savedFavorites));
+      if (savedBucketList) setBucketList(JSON.parse(savedBucketList));
+    }
+  }, [currentUser]);
 
   // Save data to localStorage whenever it changes
   useEffect(() => {
@@ -157,6 +176,11 @@ function App() {
       setCurrentTime(new Date());
     }, 1000);
     return () => clearInterval(timer);
+  }, []);
+
+  // Load weather on component mount
+  useEffect(() => {
+    getWeather();
   }, []);
 
   const getTimeIn = (timezone: string) => {
@@ -221,6 +245,30 @@ function App() {
 
   const getRandomPrompt = () => {
     return moviePrompts[Math.floor(Math.random() * moviePrompts.length)];
+  };
+
+  // Simple weather function (mock data for demo)
+  const getWeather = () => {
+    const conditions = ['sunny', 'cloudy', 'rainy', 'partly-cloudy'];
+    const icons = ['☀️', '☁️', '🌧️', '⛅'];
+    const manchesterTemp = Math.floor(Math.random() * 15) + 5; // 5-20°C
+    const texasTemp = Math.floor(Math.random() * 20) + 20; // 20-40°C
+    
+    const manchesterCondition = conditions[Math.floor(Math.random() * conditions.length)];
+    const texasCondition = conditions[Math.floor(Math.random() * conditions.length)];
+    
+    setWeather({
+      manchester: { 
+        temp: manchesterTemp, 
+        condition: manchesterCondition, 
+        icon: icons[conditions.indexOf(manchesterCondition)]
+      },
+      texas: { 
+        temp: texasTemp, 
+        condition: texasCondition, 
+        icon: icons[conditions.indexOf(texasCondition)]
+      }
+    });
   };
 
   // Authentication functions
@@ -293,6 +341,10 @@ function App() {
               <div className="text-xs text-blue-100 font-medium">
                 {getDateIn('Europe/London')}
               </div>
+              <div className="flex items-center justify-center mt-2 mb-2">
+                <span className="text-2xl mr-2">{weather.manchester.icon}</span>
+                <span className="text-sm text-blue-200 font-medium">{weather.manchester.temp}°C</span>
+              </div>
               <div className="mt-3 text-sm text-blue-200 font-medium">{moodImran}</div>
             </div>
             
@@ -307,6 +359,10 @@ function App() {
               </div>
               <div className="text-xs text-blue-100 font-medium">
                 {getDateIn('America/Chicago')}
+              </div>
+              <div className="flex items-center justify-center mt-2 mb-2">
+                <span className="text-2xl mr-2">{weather.texas.icon}</span>
+                <span className="text-sm text-blue-200 font-medium">{weather.texas.temp}°C</span>
               </div>
               <div className="mt-3 text-sm text-blue-200 font-medium">{moodAjsa}</div>
             </div>
