@@ -17,15 +17,15 @@ const LoginPage = ({ onLogin }: { onLogin: (username: string, password: string) 
   };
 
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-cyan-400 via-blue-500 to-indigo-600 flex items-center justify-center p-4">
-      <div className="max-w-md w-full bg-white/10 backdrop-blur-lg rounded-3xl p-8 border border-white/20 shadow-2xl">
+    <div className="min-h-screen w-full bg-slate-900 flex items-center justify-center p-4">
+      <div className="max-w-md w-full bg-slate-800/50 backdrop-blur-lg rounded-3xl p-8 border border-blue-500/30 shadow-2xl">
         <div className="text-center mb-8">
           <div className="flex items-center justify-center mb-4">
-            <Heart className="text-cyan-300 mr-2" size={32} />
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-cyan-200 to-blue-200 bg-clip-text text-transparent">
+            <Heart className="text-blue-300 mr-2" size={32} />
+            <h1 className="text-3xl font-bold text-blue-200">
               Together
             </h1>
-            <Heart className="text-cyan-300 ml-2" size={32} />
+            <Heart className="text-blue-300 ml-2" size={32} />
           </div>
           <p className="text-white/80 text-sm">Sign in to access your personal space</p>
         </div>
@@ -38,7 +38,7 @@ const LoginPage = ({ onLogin }: { onLogin: (username: string, password: string) 
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               placeholder="Enter your username"
-              className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white placeholder-white/60 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-300"
+              className="w-full bg-slate-700/50 border border-blue-500/30 rounded-xl px-4 py-3 text-white placeholder-white/60 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
               required
             />
           </div>
@@ -50,7 +50,7 @@ const LoginPage = ({ onLogin }: { onLogin: (username: string, password: string) 
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Enter your password"
-              className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white placeholder-white/60 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-300"
+              className="w-full bg-slate-700/50 border border-blue-500/30 rounded-xl px-4 py-3 text-white placeholder-white/60 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
               required
             />
           </div>
@@ -63,7 +63,7 @@ const LoginPage = ({ onLogin }: { onLogin: (username: string, password: string) 
 
           <button
             type="submit"
-            className="w-full bg-gradient-to-r from-cyan-500 to-blue-500 text-white py-3 rounded-xl font-semibold hover:scale-105 transition-transform duration-200"
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-semibold hover:scale-105 transition-transform duration-200"
           >
             Sign In
           </button>
@@ -87,6 +87,7 @@ function App() {
   const [favorites, setFavorites] = useState<Array<{type: string, name: string, person: string, emoji: string}>>([]);
   const [bucketList, setBucketList] = useState<string[]>([]);
   const [loveNotes, setLoveNotes] = useState<Array<{from: string, message: string, time: string}>>([]);
+  const [movies, setMovies] = useState<Array<{title: string, addedBy: string, time: string}>>([]);
 
   // Check for existing login session
   useEffect(() => {
@@ -102,6 +103,7 @@ function App() {
     const savedFavorites = localStorage.getItem('together-favorites');
     const savedBucketList = localStorage.getItem('together-bucket-list');
     const savedLoveNotes = localStorage.getItem('together-love-notes');
+    const savedMovies = localStorage.getItem('together-movies');
     const savedMoodImran = localStorage.getItem('together-mood-imran');
     const savedMoodAjsa = localStorage.getItem('together-mood-ajsa');
     const savedMoodTextImran = localStorage.getItem('together-mood-text-imran');
@@ -110,6 +112,7 @@ function App() {
     if (savedFavorites) setFavorites(JSON.parse(savedFavorites));
     if (savedBucketList) setBucketList(JSON.parse(savedBucketList));
     if (savedLoveNotes) setLoveNotes(JSON.parse(savedLoveNotes));
+    if (savedMovies) setMovies(JSON.parse(savedMovies));
     if (savedMoodImran) setMoodImran(savedMoodImran);
     if (savedMoodAjsa) setMoodAjsa(savedMoodAjsa);
     if (savedMoodTextImran) setMoodTextImran(savedMoodTextImran);
@@ -128,6 +131,10 @@ function App() {
   useEffect(() => {
     localStorage.setItem('together-love-notes', JSON.stringify(loveNotes));
   }, [loveNotes]);
+
+  useEffect(() => {
+    localStorage.setItem('together-movies', JSON.stringify(movies));
+  }, [movies]);
 
   useEffect(() => {
     localStorage.setItem('together-mood-imran', moodImran);
@@ -158,6 +165,7 @@ function App() {
       hour: '2-digit',
       minute: '2-digit',
       second: '2-digit',
+      hour12: false
     });
   };
 
@@ -170,15 +178,15 @@ function App() {
     });
   };
 
-  const dailyPrompts = [
-    "What made you smile today?",
-    "Share a photo of your current view",
-    "What's your favorite memory of us?",
-    "If you could teleport here right now, what would we do?",
-    "What's one thing you love about our relationship?",
-    "Describe your perfect day together",
-    "What's something new you'd like to try together?",
-    "What makes you feel most loved by me?",
+  const moviePrompts = [
+    "What movie should we watch tonight?",
+    "Add a movie you've been wanting to see",
+    "What's your all-time favorite movie?",
+    "Add a movie we should watch together",
+    "What movie made you cry the most?",
+    "Add a comedy we should watch",
+    "What's a movie you think I'd love?",
+    "Add a classic movie to our list",
   ];
 
   // Functional handlers
@@ -198,6 +206,13 @@ function App() {
     setLoveNotes([{ from, message, time: timeString }, ...loveNotes]);
   };
 
+  const addMovie = (title: string, addedBy: string) => {
+    const now = new Date();
+    const timeString = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+    
+    setMovies([{ title, addedBy, time: timeString }, ...movies]);
+  };
+
   const sendLoveNote = () => {
     if (newNote.trim()) {
       addLoveNote(currentUser || 'You', newNote.trim());
@@ -206,7 +221,7 @@ function App() {
   };
 
   const getRandomPrompt = () => {
-    return dailyPrompts[Math.floor(Math.random() * dailyPrompts.length)];
+    return moviePrompts[Math.floor(Math.random() * moviePrompts.length)];
   };
 
   // Authentication functions
@@ -232,8 +247,8 @@ function App() {
       onClick={() => setActiveTab(id)}
       className={`flex flex-col items-center p-2 rounded-xl transition-all duration-200 ${
         active 
-          ? 'bg-white/20 text-white shadow-lg scale-105' 
-          : 'text-white/70 hover:text-white hover:bg-white/10'
+          ? 'bg-blue-600/50 text-white shadow-lg scale-105' 
+          : 'text-white/70 hover:text-white hover:bg-slate-700/50'
       }`}
     >
       <Icon size={20} />
@@ -248,10 +263,10 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-cyan-400 via-blue-500 to-indigo-600">
-      <div className="max-w-md mx-auto bg-white/10 backdrop-blur-lg min-h-screen w-full relative">
+    <div className="min-h-screen w-full bg-slate-900">
+      <div className="max-w-md mx-auto bg-slate-800/50 backdrop-blur-lg min-h-screen w-full relative main-content">
         {/* Header */}
-        <div className="bg-gradient-to-r from-cyan-500/20 to-blue-500/20 backdrop-blur-lg p-6 text-white">
+        <div className="bg-slate-800/80 backdrop-blur-lg p-6 text-white border-b border-blue-500/30">
           {/* User info and logout */}
           <div className="flex justify-between items-center mb-4">
             <div className="text-white/80 text-sm">
@@ -267,22 +282,22 @@ function App() {
           
           {/* Timezone Display */}
           <div className="grid grid-cols-2 gap-3 mb-4">
-            <div className="bg-white/15 backdrop-blur-sm rounded-2xl p-4 text-center border border-white/30 shadow-lg">
-              <div className="text-lg font-bold text-cyan-200 mb-2">Imran</div>
+            <div className="bg-blue-900/30 backdrop-blur-sm rounded-2xl p-4 text-center border border-blue-500/30 shadow-lg">
+              <div className="text-lg font-bold text-blue-200 mb-2">Imran</div>
               <div className="flex items-center justify-center mb-3">
-                <MapPin size={14} className="text-cyan-300 mr-1" />
-                <span className="text-xs font-semibold text-cyan-200">MANCHESTER</span>
+                <MapPin size={14} className="text-blue-300 mr-1" />
+                <span className="text-xs font-semibold text-blue-200">MANCHESTER</span>
               </div>
               <div className="text-3xl font-bold text-white mb-1">
                 {getTimeIn('Europe/London')}
               </div>
-              <div className="text-xs text-cyan-100 font-medium">
+              <div className="text-xs text-blue-100 font-medium">
                 {getDateIn('Europe/London')}
               </div>
-              <div className="mt-3 text-sm text-cyan-200 font-medium">{moodImran}</div>
+              <div className="mt-3 text-sm text-blue-200 font-medium">{moodImran}</div>
             </div>
             
-            <div className="bg-white/15 backdrop-blur-sm rounded-2xl p-4 text-center border border-white/30 shadow-lg">
+            <div className="bg-blue-900/30 backdrop-blur-sm rounded-2xl p-4 text-center border border-blue-500/30 shadow-lg">
               <div className="text-lg font-bold text-blue-200 mb-2">Ajsa</div>
               <div className="flex items-center justify-center mb-3">
                 <MapPin size={14} className="text-blue-300 mr-1" />
@@ -304,9 +319,9 @@ function App() {
           {activeTab === 'home' && (
             <div className="space-y-4">
               {/* Mood Selector */}
-              <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-4 border border-white/20">
+              <div className="bg-slate-800/50 backdrop-blur-sm rounded-2xl p-4 border border-blue-500/30">
                 <h3 className="text-white font-semibold mb-3 flex items-center">
-                  <Heart size={18} className="mr-2 text-cyan-300" />
+                  <Heart size={18} className="mr-2 text-blue-300" />
                   How are you feeling, {currentUser}?
                 </h3>
                 <div className="grid grid-cols-6 gap-2 mb-4">
@@ -316,8 +331,8 @@ function App() {
                       onClick={() => currentUser === 'Imran' ? setMoodImran(mood) : setMoodAjsa(mood)}
                       className={`p-3 rounded-xl text-2xl transition-all duration-200 hover:scale-110 ${
                         (currentUser === 'Imran' ? moodImran === mood : moodAjsa === mood) 
-                          ? 'bg-cyan-500/30 scale-110' 
-                          : 'bg-white/10 hover:bg-white/20'
+                          ? 'bg-blue-500/30 scale-110' 
+                          : 'bg-slate-700/50 hover:bg-slate-600/50'
                       }`}
                     >
                       {mood}
@@ -331,36 +346,46 @@ function App() {
                     value={currentUser === 'Imran' ? moodTextImran : moodTextAjsa}
                     onChange={(e) => currentUser === 'Imran' ? setMoodTextImran(e.target.value) : setMoodTextAjsa(e.target.value)}
                     placeholder="How are you feeling today?"
-                    className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-2 text-white placeholder-white/60 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-300"
+                    className="w-full bg-slate-700/50 border border-blue-500/30 rounded-xl px-4 py-2 text-white placeholder-white/60 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
                   />
                 </div>
               </div>
 
-              {/* Daily Prompt */}
-              <div className="bg-gradient-to-r from-cyan-500/20 to-blue-500/20 backdrop-blur-sm rounded-2xl p-4 border border-white/20">
+              {/* Movies Section */}
+              <div className="bg-blue-900/30 backdrop-blur-sm rounded-2xl p-4 border border-blue-500/30">
                 <h3 className="text-white font-semibold mb-3 flex items-center">
                   <Star size={18} className="mr-2 text-yellow-300" />
-                  Today's Connection Prompt
+                  Movies We Should Watch
                 </h3>
                 <p className="text-white/90 text-sm leading-relaxed mb-3">
                   {getRandomPrompt()}
                 </p>
+                <div className="space-y-2 mb-3">
+                  {movies.slice(0, 3).map((movie, index) => (
+                    <div key={index} className="bg-slate-800/50 rounded-lg p-2 flex justify-between items-center">
+                      <span className="text-white text-sm">{movie.title}</span>
+                      <span className="text-blue-300 text-xs">{movie.addedBy} • {movie.time}</span>
+                    </div>
+                  ))}
+                </div>
                 <button 
                   onClick={() => {
-                    const prompt = getRandomPrompt();
-                    addLoveNote(currentUser || 'You', `Prompt response: ${prompt}`);
+                    const movieTitle = prompt('What movie should we watch?');
+                    if (movieTitle && movieTitle.trim()) {
+                      addMovie(movieTitle.trim(), currentUser || 'You');
+                    }
                   }}
-                  className="flex items-center bg-cyan-500 hover:bg-cyan-600 text-white px-4 py-2 rounded-full text-sm font-medium transition-colors duration-200"
+                  className="flex items-center bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-full text-sm font-medium transition-colors duration-200"
                 >
-                  <Camera size={16} className="mr-2" />
-                  Share Response
+                  <Plus size={16} className="mr-2" />
+                  Add Movie
                 </button>
               </div>
 
               {/* Quick Love Note */}
-              <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-4 border border-white/20">
+              <div className="bg-slate-800/50 backdrop-blur-sm rounded-2xl p-4 border border-blue-500/30">
                 <h3 className="text-white font-semibold mb-3 flex items-center">
-                  <MessageCircle size={18} className="mr-2 text-cyan-300" />
+                  <MessageCircle size={18} className="mr-2 text-blue-300" />
                   Send a note to {currentUser === 'Imran' ? 'Ajsa' : 'Imran'}
                 </h3>
                 <div className="flex gap-2">
@@ -370,7 +395,7 @@ function App() {
                     onChange={(e) => setNewNote(e.target.value)}
                     onKeyPress={(e) => e.key === 'Enter' && sendLoveNote()}
                     placeholder="What's on your heart?"
-                    className="flex-1 bg-white/10 border border-white/20 rounded-xl px-4 py-2 text-white placeholder-white/60 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-300"
+                    className="flex-1 bg-slate-700/50 border border-blue-500/30 rounded-xl px-4 py-2 text-white placeholder-white/60 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
                   />
                   <button 
                     onClick={sendLoveNote}
@@ -392,7 +417,7 @@ function App() {
 
               <div className="grid grid-cols-2 gap-3">
                 {favorites.map((item, index) => (
-                  <div key={index} className="bg-white/10 backdrop-blur-sm rounded-2xl p-4 text-center border border-white/20">
+                  <div key={index} className="bg-slate-800/50 backdrop-blur-sm rounded-2xl p-4 text-center border border-blue-500/30">
                     <div className="text-3xl mb-2">{item.emoji}</div>
                     <h3 className="text-white font-semibold text-sm">{item.name}</h3>
                     <p className="text-white/70 text-xs mt-1">{item.person}'s favorite</p>
@@ -414,7 +439,7 @@ function App() {
                       addFavorite('custom', name, person, emoji);
                     }
                   }}
-                  className="bg-white/10 backdrop-blur-sm rounded-2xl p-4 text-center border border-white/20 hover:bg-white/20 transition-colors duration-200"
+                  className="bg-slate-800/50 backdrop-blur-sm rounded-2xl p-4 text-center border border-blue-500/30 hover:bg-slate-700/50 transition-colors duration-200"
                 >
                   <Plus className="text-white mx-auto mb-2" size={24} />
                   <p className="text-white text-sm font-medium">Add New</p>
@@ -437,7 +462,7 @@ function App() {
                 </div>
               ) : (
                 bucketList.map((item, index) => (
-                  <div key={index} className="bg-white/10 backdrop-blur-sm rounded-2xl p-4 border border-white/20">
+                  <div key={index} className="bg-slate-800/50 backdrop-blur-sm rounded-2xl p-4 border border-blue-500/30">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center">
                         <div className="w-6 h-6 border-2 border-pink-300 rounded-full mr-3 flex-shrink-0"></div>
@@ -461,7 +486,7 @@ function App() {
                     addBucketListItem(item.trim());
                   }
                 }}
-                className="w-full bg-gradient-to-r from-cyan-500 to-blue-500 text-white py-3 rounded-2xl font-semibold hover:scale-105 transition-transform duration-200"
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-2xl font-semibold hover:scale-105 transition-transform duration-200"
               >
                 + Add New Dream
               </button>
@@ -482,9 +507,9 @@ function App() {
                 </div>
               ) : (
                 loveNotes.map((note, index) => (
-                  <div key={index} className={`p-4 rounded-2xl border border-white/20 ${
+                  <div key={index} className={`p-4 rounded-2xl border border-blue-500/30 ${
                     note.from === currentUser 
-                      ? 'bg-cyan-500/20 ml-8' 
+                      ? 'bg-blue-600/20 ml-8' 
                       : 'bg-blue-500/20 mr-8'
                   }`}>
                     <div className="flex items-center justify-between mb-2">
@@ -505,9 +530,9 @@ function App() {
                 <p className="text-white/80 text-sm">Important dates & virtual dates</p>
               </div>
 
-              <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-4 border border-white/20">
+              <div className="bg-slate-800/50 backdrop-blur-sm rounded-2xl p-4 border border-blue-500/30">
                 <h3 className="text-white font-semibold mb-3 flex items-center">
-                  <Heart size={18} className="mr-2 text-cyan-300" />
+                  <Heart size={18} className="mr-2 text-blue-300" />
                   Time Difference
                 </h3>
                 <div className="space-y-3">
@@ -537,7 +562,7 @@ function App() {
                 </div>
               </div>
 
-              <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-4 border border-white/20">
+              <div className="bg-slate-800/50 backdrop-blur-sm rounded-2xl p-4 border border-blue-500/30">
                 <h3 className="text-white font-semibold mb-3 flex items-center">
                   <Calendar size={18} className="mr-2 text-blue-300" />
                   Quick Tips
@@ -553,7 +578,7 @@ function App() {
         </div>
 
         {/* Bottom Navigation */}
-        <div className="fixed bottom-0 left-1/2 transform -translate-x-1/2 w-full max-w-md bg-gradient-to-r from-cyan-500/20 to-blue-500/20 backdrop-blur-lg p-4 border-t border-white/20">
+        <div className="fixed-bottom-nav w-full max-w-md p-4">
           <div className="grid grid-cols-5 gap-2">
             <TabButton id="home" icon={Heart} label="Home" active={activeTab === 'home'} />
             <TabButton id="favorites" icon={Coffee} label="Favorites" active={activeTab === 'favorites'} />
