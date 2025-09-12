@@ -189,18 +189,8 @@ function App() {
     }
   };
 
-  // Save moods to Supabase when emoji changes (text is saved manually)
-  useEffect(() => {
-    if (currentUser === 'Imran' && moodImran) {
-      saveMood('Imran', moodImran, moodTextImran);
-    }
-  }, [moodImran, currentUser]);
-
-  useEffect(() => {
-    if (currentUser === 'Ajsa' && moodAjsa) {
-      saveMood('Ajsa', moodAjsa, moodTextAjsa);
-    }
-  }, [moodAjsa, currentUser]);
+  // Note: Mood saving is now handled explicitly in the mood button click handlers
+  // and mood text input handlers, not automatically on state change
 
   useEffect(() => {
     const timer = setInterval(() => {
