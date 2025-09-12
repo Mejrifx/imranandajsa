@@ -353,6 +353,13 @@ function App() {
     }, 3000);
   };
 
+  // Helper function to get name color based on user
+  const getNameColor = (name: string) => {
+    if (name === 'Ajsa') return 'text-pink-400';
+    if (name === 'Imran') return 'text-cyan-400';
+    return 'text-blue-300';
+  };
+
   const sendLoveNote = async () => {
     if (newNote.trim()) {
       try {
@@ -598,18 +605,19 @@ function App() {
                   Movies we should watch eventually...
                 </p>
                 <div className="space-y-2 mb-3">
-                  {movies.slice(0, 3).map((movie) => (
+                  {movies.map((movie) => (
                     <div key={movie.id} className="bg-slate-800/50 rounded-lg p-2 flex justify-between items-center">
                       <span className="text-white text-sm">{movie.title}</span>
-                      <span className="text-blue-300 text-xs">
-                        {movie.added_by} • {new Date(movie.created_at).toLocaleDateString('en-US', { 
+                      <span className="text-xs">
+                        <span className={getNameColor(movie.added_by)}>{movie.added_by}</span>
+                        <span className="text-blue-300"> • {new Date(movie.created_at).toLocaleDateString('en-US', { 
                           month: 'short', 
                           day: 'numeric' 
                         })} {new Date(movie.created_at).toLocaleTimeString('en-US', { 
                           hour: '2-digit', 
                           minute: '2-digit',
                           hour12: false 
-                        })}
+                        })}</span>
                       </span>
                     </div>
                   ))}
@@ -632,7 +640,7 @@ function App() {
               <div className="bg-slate-800/50 backdrop-blur-sm rounded-2xl p-4 border border-blue-500/30">
                 <h3 className="text-white font-semibold mb-3 flex items-center">
                   <MessageCircle size={18} className="mr-2 text-blue-300" />
-                  Send a note to {currentUser === 'Imran' ? 'Ajsa' : 'Imran'}
+                  Send a note to <span className={getNameColor(currentUser === 'Imran' ? 'Ajsa' : 'Imran')}>{currentUser === 'Imran' ? 'Ajsa' : 'Imran'}</span>
                 </h3>
                 <div className="flex gap-2">
                   <input
@@ -666,7 +674,10 @@ function App() {
                   <div key={item.id} className="bg-slate-800/50 backdrop-blur-sm rounded-2xl p-4 text-center border border-blue-500/30">
                     <div className="text-3xl mb-2">{item.emoji}</div>
                     <h3 className="text-white font-semibold text-sm">{item.name}</h3>
-                    <p className="text-white/70 text-xs mt-1">{item.person}'s favorite</p>
+                    <p className="text-xs mt-1">
+                      <span className={getNameColor(item.person)}>{item.person}</span>
+                      <span className="text-white/70">'s favorite</span>
+                    </p>
                     <button 
                       onClick={() => deleteFavorite(item.id)}
                       className="text-red-300 text-xs mt-2 hover:text-red-200"
@@ -788,7 +799,7 @@ function App() {
                     >
                       <div className="note-pin"></div>
                       <div className="flex items-center justify-between mb-3">
-                        <span className="handwritten-text font-bold text-lg text-gray-800">
+                        <span className={`handwritten-text font-bold text-lg ${getNameColor(note.from_user)}`}>
                           {note.from_user}
                         </span>
                         <span className="note-timestamp">
