@@ -575,9 +575,11 @@ function App() {
             </div>
           )}
         </div>
+      </div>
 
-        {/* Bottom Navigation */}
-        <div className="fixed-bottom-nav w-full max-w-md p-4">
+      {/* Bottom Navigation - Outside main container */}
+      <div className="fixed bottom-0 left-0 right-0 z-50 bg-slate-800/90 backdrop-blur-lg border-t border-blue-500/30">
+        <div className="max-w-md mx-auto p-4">
           <div className="grid grid-cols-5 gap-2">
             <TabButton id="home" icon={Heart} label="Home" active={activeTab === 'home'} />
             <TabButton id="favorites" icon={Coffee} label="Favorites" active={activeTab === 'favorites'} />
