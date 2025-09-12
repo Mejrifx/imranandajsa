@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Heart, Clock, Camera, MessageCircle, Calendar, Star, MapPin, Coffee, Gamepad2, Plus, Send } from 'lucide-react';
-import { supabase, Note, Movie, Favorite, BucketListItem, UserMood } from './supabase';
+import { supabase, Note, Movie, Favorite, BucketListItem, UserMood, DailyPhoto } from './supabase';
 
 // Login Component - moved outside to prevent re-creation on every render
 const LoginPage = ({ onLogin }: { onLogin: (username: string, password: string) => boolean }) => {
@@ -89,6 +89,7 @@ function App() {
   const [bucketList, setBucketList] = useState<BucketListItem[]>([]);
   const [loveNotes, setLoveNotes] = useState<Note[]>([]);
   const [movies, setMovies] = useState<Movie[]>([]);
+  const [dailyPhotos, setDailyPhotos] = useState<DailyPhoto[]>([]);
   const [weather, setWeather] = useState({
     manchester: { temp: 12, condition: 'cloudy', icon: '☁️' },
     texas: { temp: 28, condition: 'sunny', icon: '☀️' }
@@ -124,7 +125,8 @@ function App() {
       loadMovies(),
       loadFavorites(),
       loadBucketList(),
-      loadMoods()
+      loadMoods(),
+      loadDailyPhotos()
     ]);
   };
 
@@ -187,6 +189,16 @@ function App() {
         setMoodTextAjsa(ajsaMood.mood_text);
       }
     }
+  };
+
+  const loadDailyPhotos = async () => {
+    const { data, error } = await supabase
+      .from('daily_photos')
+      .select('*')
+      .order('photo_date', { ascending: false });
+    
+    if (error) console.error('Error loading daily photos:', error);
+    else setDailyPhotos(data || []);
   };
 
   // Note: Mood saving is now handled explicitly in the mood button click handlers
@@ -342,6 +354,28 @@ function App() {
     if (error) console.error('Error deleting bucket item:', error);
     else {
       setBucketList(bucketList.filter(item => item.id !== id));
+    }
+  };
+
+  const addDailyPhoto = async (photoUrl: string, caption: string) => {
+    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+    
+    const { data, error } = await supabase
+      .from('daily_photos')
+      .upsert([{ 
+        user_name: currentUser, 
+        photo_url: photoUrl, 
+        caption: caption,
+        photo_date: today
+      }], { onConflict: 'user_name,photo_date' })
+      .select();
+    
+    if (error) console.error('Error adding daily photo:', error);
+    else {
+      setDailyPhotos([data[0], ...dailyPhotos.filter(photo => 
+        !(photo.user_name === currentUser && photo.photo_date === today)
+      )]);
+      showToastNotification('📸 Pic of the day added!');
     }
   };
 
@@ -640,7 +674,7 @@ function App() {
               <div className="bg-slate-800/50 backdrop-blur-sm rounded-2xl p-4 border border-blue-500/30">
                 <h3 className="text-white font-semibold mb-3 flex items-center">
                   <MessageCircle size={18} className="mr-2 text-blue-300" />
-                  Send a note to <span className={getNameColor(currentUser === 'Imran' ? 'Ajsa' : 'Imran')}>{currentUser === 'Imran' ? 'Ajsa' : 'Imran'}</span>
+                  Send a note to <span className={getNameColor(currentUser === 'Imran' ? 'Ajsa' : 'Imran')}> {currentUser === 'Imran' ? 'Ajsa' : 'Imran'}</span>
                 </h3>
                 <div className="flex gap-2">
                   <input
@@ -816,7 +850,7 @@ function App() {
                       <p className="handwritten-text text-gray-700 text-base leading-relaxed">
                         {note.message}
                       </p>
-                    </div>
+                  </div>
                   ))}
                 </div>
               )}
@@ -872,6 +906,74 @@ function App() {
                   <p>• Best time to call: 7-9 PM Manchester / 1-3 PM Texas</p>
                   <p>• Weekend mornings work well for both</p>
                 </div>
+              </div>
+
+              {/* Pic of the Day */}
+              <div className="bg-slate-800/50 backdrop-blur-sm rounded-2xl p-4 border border-blue-500/30">
+                <h3 className="text-white font-semibold mb-3 flex items-center">
+                  <Camera size={18} className="mr-2 text-blue-300" />
+                  Pic of the Day
+                </h3>
+                <p className="text-white/80 text-sm mb-4">Share your daily moments</p>
+                
+                {/* Add Photo Button */}
+                <button 
+                  onClick={() => {
+                    const photoUrl = prompt('Enter photo URL (e.g., https://example.com/photo.jpg):');
+                    const caption = prompt('Add a caption (optional):');
+                    if (photoUrl && photoUrl.trim()) {
+                      addDailyPhoto(photoUrl.trim(), caption || '');
+                    } else if (photoUrl !== null) {
+                      showToastNotification('❌ Please enter a valid photo URL');
+                    }
+                  }}
+                  className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white py-3 rounded-xl font-semibold hover:scale-[1.02] transition-all duration-300 shadow-lg hover:shadow-blue-500/25 flex items-center justify-center gap-2 mb-4"
+                >
+                  <Camera className="w-4 h-4" />
+                  Add Today's Pic
+              </button>
+
+                {/* Display Recent Photos */}
+                {dailyPhotos.length === 0 ? (
+                  <div className="text-center py-4">
+                    <Camera className="text-white/50 mx-auto mb-2" size={32} />
+                    <p className="text-white/70 text-sm">No pics shared yet</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {dailyPhotos.slice(0, 3).map((photo) => (
+                      <div key={photo.id} className="bg-slate-700/50 rounded-lg p-3">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className={`font-semibold text-sm ${getNameColor(photo.user_name)}`}>
+                            {photo.user_name}
+                          </span>
+                          <span className="text-xs text-blue-300">
+                            {new Date(photo.photo_date).toLocaleDateString('en-US', { 
+                              month: 'short', 
+                              day: 'numeric' 
+                            })}
+                          </span>
+                        </div>
+                        <img 
+                          src={photo.photo_url} 
+                          alt={photo.caption || 'Daily photo'} 
+                          className="w-full h-32 object-cover rounded-lg mb-2"
+                          onError={(e) => {
+                            e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjEyOCIgdmlld0JveD0iMCAwIDIwMCAxMjgiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMTI4IiBmaWxsPSIjMzc0MTUxIi8+CjxwYXRoIGQ9Ik04MCA0OEwxMjAgODhMODAgMTI4SDQwVjQ4SDgwWiIgZmlsbD0iIzYzNjY3MSIvPgo8Y2lyY2xlIGN4PSI2MCIgY3k9IjQ4IiByPSIxNiIgZmlsbD0iIzYzNjY3MSIvPgo8dGV4dCB4PSIxMDAiIHk9IjY0IiBmaWxsPSIjOUI5QkE1IiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMiI+VW5hYmxlIHRvIGxvYWQ8L3RleHQ+Cjwvc3ZnPg==';
+                          }}
+                        />
+                        {photo.caption && (
+                          <p className="text-white/80 text-xs italic">"{photo.caption}"</p>
+                        )}
+                      </div>
+                    ))}
+                    {dailyPhotos.length > 3 && (
+                      <p className="text-center text-blue-300 text-xs">
+                        +{dailyPhotos.length - 3} more photos
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           )}

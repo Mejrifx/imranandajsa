@@ -43,3 +43,13 @@ export interface UserMood {
   mood_text: string
   updated_at: string
 }
+
+export interface DailyPhoto {
+  id: string
+  user_name: string
+  photo_url: string
+  caption: string
+  photo_date: string
+  created_at: string
+  updated_at: string
+}
