@@ -98,6 +98,7 @@ function App() {
   const [toastMessage, setToastMessage] = useState('');
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [birthdays, setBirthdays] = useState<{user_name: string, birth_date: string}[]>([]);
 
   // Check for existing login session
   useEffect(() => {
@@ -128,7 +129,8 @@ function App() {
       loadFavorites(),
       loadBucketList(),
       loadMoods(),
-      loadDailyPhotos()
+      loadDailyPhotos(),
+      loadBirthdays()
     ]);
   };
 
@@ -201,6 +203,51 @@ function App() {
     
     if (error) console.error('Error loading daily photos:', error);
     else setDailyPhotos(data || []);
+  };
+
+  const loadBirthdays = async () => {
+    const { data, error } = await supabase
+      .from('birthdays')
+      .select('*');
+    
+    if (error) console.error('Error loading birthdays:', error);
+    else setBirthdays(data || []);
+  };
+
+  const saveBirthday = async (userName: string, birthDate: string) => {
+    const { data, error } = await supabase
+      .from('birthdays')
+      .upsert([{
+        user_name: userName,
+        birth_date: birthDate
+      }], { onConflict: 'user_name' })
+      .select();
+    
+    if (error) console.error('Error saving birthday:', error);
+    else {
+      setBirthdays([data[0], ...birthdays.filter(b => b.user_name !== userName)]);
+      showToastNotification('🎂 Birthday saved!');
+    }
+  };
+
+  const calculateTimeUntilBirthday = (birthDate: string) => {
+    const today = new Date();
+    const birthday = new Date(birthDate);
+    
+    // Set birthday to this year
+    birthday.setFullYear(today.getFullYear());
+    
+    // If birthday has passed this year, set to next year
+    if (birthday < today) {
+      birthday.setFullYear(today.getFullYear() + 1);
+    }
+    
+    const diffMs = birthday.getTime() - today.getTime();
+    const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+    
+    return { days, hours, minutes };
   };
 
   // Note: Mood saving is now handled explicitly in the mood button click handlers
@@ -921,54 +968,10 @@ function App() {
             <div className="space-y-4">
               <div className="text-center mb-6">
                 <h2 className="text-white text-xl font-bold mb-2">Our Calendar</h2>
-                <p className="text-white/80 text-sm">Important dates & virtual dates</p>
+                <p className="text-white/80 text-sm">Important dates & Pics of the day</p>
               </div>
 
-              <div className="bg-slate-800/50 backdrop-blur-sm rounded-2xl p-4 border border-blue-500/30">
-                <h3 className="text-white font-semibold mb-3 flex items-center">
-                  <Heart size={18} className="mr-2 text-blue-300" />
-                  Time Difference
-                </h3>
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-white font-medium">Current Time Difference</p>
-                      <p className="text-white/70 text-sm">
-                        {(() => {
-                          const london = new Date().toLocaleString("en-US", {timeZone: "Europe/London"});
-                          const texas = new Date().toLocaleString("en-US", {timeZone: "America/Chicago"});
-                          const londonTime = new Date(london);
-                          const texasTime = new Date(texas);
-                          const diffHours = Math.abs(londonTime.getHours() - texasTime.getHours());
-                          return `${diffHours} hours apart`;
-                        })()}
-                      </p>
-                    </div>
-                    <div className="text-2xl">⏰</div>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-white font-medium">Best Call Times</p>
-                      <p className="text-white/70 text-sm">Evening UK / Afternoon TX</p>
-                    </div>
-                    <div className="text-2xl">📞</div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-slate-800/50 backdrop-blur-sm rounded-2xl p-4 border border-blue-500/30">
-                <h3 className="text-white font-semibold mb-3 flex items-center">
-                  <Calendar size={18} className="mr-2 text-blue-300" />
-                  Quick Tips
-                </h3>
-                <div className="space-y-2 text-sm text-white/80">
-                  <p>• Manchester is 6 hours ahead of Texas</p>
-                  <p>• Best time to call: 7-9 PM Manchester / 1-3 PM Texas</p>
-                  <p>• Weekend mornings work well for both</p>
-                </div>
-              </div>
-
-              {/* Pic of the Day */}
+              {/* Pic of the Day - Now at the top */}
               <div className="bg-slate-800/50 backdrop-blur-sm rounded-2xl p-4 border border-blue-500/30">
                 <h3 className="text-white font-semibold mb-3 flex items-center">
                   <Camera size={18} className="mr-2 text-blue-300" />
@@ -1025,7 +1028,7 @@ function App() {
                         Add Today's Pic
                       </>
                     )}
-              </button>
+                  </button>
                   <p className="text-xs text-blue-200/80 text-center mt-2">
                     Tap to take a photo or select from gallery
                   </p>
@@ -1073,6 +1076,107 @@ function App() {
                     )}
                   </div>
                 )}
+              </div>
+
+              {/* Our Birthdays - Replaced Quick Tips */}
+              <div className="bg-slate-800/50 backdrop-blur-sm rounded-2xl p-4 border border-blue-500/30">
+                <h3 className="text-white font-semibold mb-3 flex items-center">
+                  <Heart size={18} className="mr-2 text-blue-300" />
+                  Our Birthdays
+                </h3>
+                <p className="text-white/80 text-sm mb-4">Countdown to our special days</p>
+                
+                {/* Birthday Input */}
+                <div className="mb-4">
+                  <button
+                    onClick={() => {
+                      const birthDate = prompt(`Enter ${currentUser}'s birthday (YYYY-MM-DD):`);
+                      if (birthDate && birthDate.match(/^\d{4}-\d{2}-\d{2}$/)) {
+                        saveBirthday(currentUser, birthDate);
+                      } else if (birthDate) {
+                        showToastNotification('❌ Please enter date in YYYY-MM-DD format');
+                      }
+                    }}
+                    className="w-full py-2 px-4 bg-gradient-to-r from-pink-600 to-pink-700 hover:from-pink-700 hover:to-pink-800 text-white rounded-lg font-medium transition-all duration-200 hover:scale-[1.02] hover:shadow-lg hover:shadow-pink-500/25"
+                  >
+                    🎂 Set {currentUser}'s Birthday
+                  </button>
+                </div>
+
+                {/* Display Birthdays */}
+                {birthdays.length === 0 ? (
+                  <div className="text-center py-4">
+                    <Heart className="text-white/50 mx-auto mb-2" size={32} />
+                    <p className="text-white/70 text-sm">No birthdays set yet</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {birthdays.map((birthday) => {
+                      const countdown = calculateTimeUntilBirthday(birthday.birth_date);
+                      return (
+                        <div key={birthday.user_name} className="bg-slate-700/50 rounded-lg p-3">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className={`font-semibold text-sm ${getNameColor(birthday.user_name)}`}>
+                              {birthday.user_name}'s Birthday
+                            </span>
+                            <span className="text-xs text-blue-300">
+                              {new Date(birthday.birth_date).toLocaleDateString('en-US', { 
+                                month: 'long', 
+                                day: 'numeric' 
+                              })}
+                            </span>
+                          </div>
+                          <div className="grid grid-cols-3 gap-2 text-center">
+                            <div className="bg-slate-600/50 rounded-lg p-2">
+                              <div className="text-lg font-bold text-white">{countdown.days}</div>
+                              <div className="text-xs text-white/70">Days</div>
+                            </div>
+                            <div className="bg-slate-600/50 rounded-lg p-2">
+                              <div className="text-lg font-bold text-white">{countdown.hours}</div>
+                              <div className="text-xs text-white/70">Hours</div>
+                            </div>
+                            <div className="bg-slate-600/50 rounded-lg p-2">
+                              <div className="text-lg font-bold text-white">{countdown.minutes}</div>
+                              <div className="text-xs text-white/70">Minutes</div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              <div className="bg-slate-800/50 backdrop-blur-sm rounded-2xl p-4 border border-blue-500/30">
+                <h3 className="text-white font-semibold mb-3 flex items-center">
+                  <Heart size={18} className="mr-2 text-blue-300" />
+                  Time Difference
+                </h3>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-white font-medium">Current Time Difference</p>
+                      <p className="text-white/70 text-sm">
+                        {(() => {
+                          const london = new Date().toLocaleString("en-US", {timeZone: "Europe/London"});
+                          const texas = new Date().toLocaleString("en-US", {timeZone: "America/Chicago"});
+                          const londonTime = new Date(london);
+                          const texasTime = new Date(texas);
+                          const diffHours = Math.abs(londonTime.getHours() - texasTime.getHours());
+                          return `${diffHours} hours apart`;
+                        })()}
+                      </p>
+                    </div>
+                    <div className="text-2xl">⏰</div>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-white font-medium">Best Call Times</p>
+                      <p className="text-white/70 text-sm">Evening UK / Afternoon TX</p>
+                    </div>
+                    <div className="text-2xl">📞</div>
+                  </div>
+                </div>
               </div>
             </div>
           )}
