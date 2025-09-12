@@ -102,7 +102,7 @@ function App() {
   useEffect(() => {
     const savedFavorites = localStorage.getItem('together-favorites');
     const savedBucketList = localStorage.getItem('together-bucket-list');
-    const savedLoveNotes = localStorage.getItem('together-love-notes');
+    const savedLoveNotes = localStorage.getItem('together-notes');
     const savedMovies = localStorage.getItem('together-movies');
     const savedMoodImran = localStorage.getItem('together-mood-imran');
     const savedMoodAjsa = localStorage.getItem('together-mood-ajsa');
@@ -129,7 +129,7 @@ function App() {
   }, [bucketList]);
 
   useEffect(() => {
-    localStorage.setItem('together-love-notes', JSON.stringify(loveNotes));
+    localStorage.setItem('together-notes', JSON.stringify(loveNotes));
   }, [loveNotes]);
 
   useEffect(() => {
@@ -495,14 +495,14 @@ function App() {
           {activeTab === 'notes' && (
             <div className="space-y-4">
               <div className="text-center mb-6">
-                <h2 className="text-white text-xl font-bold mb-2">Love Notes</h2>
+                <h2 className="text-white text-xl font-bold mb-2">Notes to Each Other</h2>
                 <p className="text-white/80 text-sm">Sweet messages between us</p>
               </div>
 
               {loveNotes.length === 0 ? (
                 <div className="text-center py-8">
                   <MessageCircle className="text-white/50 mx-auto mb-3" size={48} />
-                  <p className="text-white/70 text-sm">No love notes yet. Start sharing your thoughts!</p>
+                  <p className="text-white/70 text-sm">No notes yet. Start sharing your thoughts!</p>
                 </div>
               ) : (
                 loveNotes.map((note, index) => (
