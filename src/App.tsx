@@ -612,7 +612,10 @@ function App() {
                     <div key={movie.id} className="bg-slate-800/50 rounded-lg p-2 flex justify-between items-center">
                       <span className="text-white text-sm">{movie.title}</span>
                       <span className="text-blue-300 text-xs">
-                        {movie.added_by} • {new Date(movie.created_at).toLocaleTimeString('en-US', { 
+                        {movie.added_by} • {new Date(movie.created_at).toLocaleDateString('en-US', { 
+                          month: 'short', 
+                          day: 'numeric' 
+                        })} {new Date(movie.created_at).toLocaleTimeString('en-US', { 
                           hour: '2-digit', 
                           minute: '2-digit',
                           hour12: false 
@@ -782,7 +785,10 @@ function App() {
                           {note.from_user}
                         </span>
                         <span className="note-timestamp">
-                          {new Date(note.created_at).toLocaleTimeString('en-US', { 
+                          {new Date(note.created_at).toLocaleDateString('en-US', { 
+                            month: 'short', 
+                            day: 'numeric' 
+                          })} • {new Date(note.created_at).toLocaleTimeString('en-US', { 
                             hour: '2-digit', 
                             minute: '2-digit',
                             hour12: false 
