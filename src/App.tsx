@@ -1049,9 +1049,12 @@ function App() {
                             {photo.user_name}
                           </span>
                           <span className="text-xs text-blue-300">
-                            {new Date(photo.photo_date).toLocaleDateString('en-US', { 
+                            {new Date(photo.created_at).toLocaleDateString('en-US', { 
                               month: 'short', 
-                              day: 'numeric' 
+                              day: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit',
+                              hour12: false
                             })}
                           </span>
                         </div>
