@@ -490,6 +490,9 @@ function App() {
                 <span className="text-sm text-blue-200 font-medium">{weather.manchester.temp}°C</span>
               </div>
               <div className="mt-3 text-sm text-blue-200 font-medium">{moodImran}</div>
+              {moodTextImran && (
+                <div className="mt-1 text-xs text-blue-100 italic">"{moodTextImran}"</div>
+              )}
             </div>
             
             <div className="bg-blue-900/30 backdrop-blur-sm rounded-2xl p-4 text-center border border-blue-500/30 shadow-lg">
@@ -509,6 +512,9 @@ function App() {
                 <span className="text-sm text-blue-200 font-medium">{weather.texas.temp}°C</span>
               </div>
               <div className="mt-3 text-sm text-blue-200 font-medium">{moodAjsa}</div>
+              {moodTextAjsa && (
+                <div className="mt-1 text-xs text-blue-100 italic">"{moodTextAjsa}"</div>
+              )}
             </div>
           </div>
         </div>
