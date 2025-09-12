@@ -97,6 +97,7 @@ function App() {
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
   // Check for existing login session
   useEffect(() => {
@@ -980,7 +981,6 @@ function App() {
                   <input
                     type="file"
                     accept="image/*"
-                    capture="environment"
                     onChange={handlePhotoUpload}
                     style={{ 
                       position: 'absolute',
@@ -1025,7 +1025,7 @@ function App() {
                         Add Today's Pic
                       </>
                     )}
-                  </button>
+              </button>
                   <p className="text-xs text-blue-200/80 text-center mt-2">
                     Tap to take a photo or select from gallery
                   </p>
@@ -1055,7 +1055,8 @@ function App() {
                         <img 
                           src={photo.photo_url} 
                           alt={photo.caption || 'Daily photo'} 
-                          className="w-full h-32 object-cover rounded-lg mb-2"
+                          className="w-full h-32 object-cover rounded-lg mb-2 cursor-pointer hover:opacity-80 transition-opacity"
+                          onClick={() => setSelectedImage(photo.photo_url)}
                           onError={(e) => {
                             e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjEyOCIgdmlld0JveD0iMCAwIDIwMCAxMjgiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMTI4IiBmaWxsPSIjMzc0MTUxIi8+CjxwYXRoIGQ9Ik04MCA0OEwxMjAgODhMODAgMTI4SDQwVjQ4SDgwWiIgZmlsbD0iIzYzNjY3MSIvPgo8Y2lyY2xlIGN4PSI2MCIgY3k9IjQ4IiByPSIxNiIgZmlsbD0iIzYzNjY3MSIvPgo8dGV4dCB4PSIxMDAiIHk9IjY0IiBmaWxsPSIjOUI5QkE1IiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMiI+VW5hYmxlIHRvIGxvYWQ8L3RleHQ+Cjwvc3ZnPg==';
                           }}
@@ -1077,6 +1078,31 @@ function App() {
           )}
         </div>
         </div>
+
+      {/* Image Modal */}
+      {selectedImage && (
+        <div 
+          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
+          onClick={() => setSelectedImage(null)}
+        >
+          <div className="relative max-w-full max-h-full">
+            <img 
+              src={selectedImage} 
+              alt="Full size photo" 
+              className="max-w-full max-h-full object-contain rounded-lg"
+              onClick={(e) => e.stopPropagation()}
+            />
+            <button
+              onClick={() => setSelectedImage(null)}
+              className="absolute top-4 right-4 bg-black/50 text-white rounded-full p-2 hover:bg-black/70 transition-colors"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Bottom Navigation - Outside main container */}
       <div className="fixed bottom-0 left-0 right-0 z-50 bg-slate-800/90 backdrop-blur-lg border-t border-blue-500/30">
