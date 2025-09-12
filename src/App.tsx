@@ -719,23 +719,37 @@ function App() {
               </div>
 
               {bucketList.length === 0 ? (
-                <div className="text-center py-8">
-                  <Star className="text-white/50 mx-auto mb-3" size={48} />
-                  <p className="text-white/70 text-sm">No dreams added yet. Start adding your bucket list items!</p>
+                <div className="text-center py-12">
+                  <div className="w-16 h-16 bg-gradient-to-br from-blue-500/20 to-blue-600/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Star className="text-blue-400" size={32} />
+                  </div>
+                  <h3 className="text-white font-semibold text-lg mb-2">Your Bucket List Awaits</h3>
+                  <p className="text-blue-200/80 text-sm leading-relaxed">Start adding your dreams and goals. Every journey begins with a single step!</p>
                 </div>
               ) : (
-                bucketList.map((item) => (
-                  <div key={item.id} className="bg-slate-800/50 backdrop-blur-sm rounded-2xl p-4 border border-blue-500/30">
+                bucketList.map((item, index) => (
+                  <div key={item.id} className="group bg-gradient-to-r from-slate-800/60 to-slate-700/60 backdrop-blur-sm rounded-xl p-4 border border-blue-400/20 hover:border-blue-400/40 transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/10">
                     <div className="flex items-center justify-between">
-                  <div className="flex items-center">
-                    <div className="w-6 h-6 border-2 border-pink-300 rounded-full mr-3 flex-shrink-0"></div>
-                        <p className="text-white font-medium">{item.item}</p>
+                      <div className="flex items-center flex-1">
+                        <div className="flex items-center justify-center w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full mr-4 flex-shrink-0 shadow-lg">
+                          <span className="text-white font-bold text-sm">{index + 1}</span>
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-white font-medium text-base leading-relaxed">{item.item}</p>
+                          <div className="flex items-center mt-1">
+                            <div className="w-2 h-2 bg-blue-400 rounded-full mr-2"></div>
+                            <span className="text-blue-300 text-xs font-medium">Bucket List Goal</span>
+                          </div>
+                        </div>
                       </div>
                       <button 
                         onClick={() => deleteBucketItem(item.id)}
-                        className="text-red-300 text-sm hover:text-red-200"
+                        className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-red-400 transition-all duration-200 p-2 hover:bg-red-500/10 rounded-lg"
+                        title="Remove from bucket list"
                       >
-                        ✕
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
                       </button>
                     </div>
                   </div>
@@ -744,14 +758,17 @@ function App() {
 
               <button 
                 onClick={() => {
-                  const item = prompt('What dream would you like to add?');
+                  const item = prompt('What dream would you like to add to your bucket list?');
                   if (item && item.trim()) {
                     addBucketListItem(item.trim());
                   }
                 }}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-2xl font-semibold hover:scale-105 transition-transform duration-200"
+                className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white py-4 rounded-xl font-semibold hover:scale-[1.02] transition-all duration-300 shadow-lg hover:shadow-blue-500/25 flex items-center justify-center gap-2"
               >
-                + Add New Dream
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+                Add New Goal
               </button>
             </div>
           )}
