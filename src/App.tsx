@@ -93,6 +93,8 @@ function App() {
     manchester: { temp: 12, condition: 'cloudy', icon: '☁️' },
     texas: { temp: 28, condition: 'sunny', icon: '☀️' }
   });
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
 
   // Check for existing login session
   useEffect(() => {
@@ -248,9 +250,12 @@ function App() {
       .insert([{ type, name, person, emoji }])
       .select();
     
-    if (error) console.error('Error adding favorite:', error);
-    else if (data) {
+    if (error) {
+      console.error('Error adding favorite:', error);
+      showToastNotification('❌ Failed to add favorite. Try again.');
+    } else if (data) {
       setFavorites([data[0], ...favorites]);
+      showToastNotification('⭐ Favorite added successfully!');
     }
   };
 
@@ -260,9 +265,12 @@ function App() {
       .insert([{ item }])
       .select();
     
-    if (error) console.error('Error adding bucket list item:', error);
-    else if (data) {
+    if (error) {
+      console.error('Error adding bucket list item:', error);
+      showToastNotification('❌ Failed to add dream. Try again.');
+    } else if (data) {
       setBucketList([data[0], ...bucketList]);
+      showToastNotification('✨ Dream added to our bucket list!');
     }
   };
 
@@ -284,9 +292,12 @@ function App() {
       .insert([{ title, added_by: addedBy }])
       .select();
     
-    if (error) console.error('Error adding movie:', error);
-    else if (data) {
+    if (error) {
+      console.error('Error adding movie:', error);
+      showToastNotification('❌ Failed to add movie. Try again.');
+    } else if (data) {
       setMovies([data[0], ...movies]);
+      showToastNotification('🎬 Movie added to our list!');
     }
   };
 
@@ -322,10 +333,23 @@ function App() {
     }
   };
 
-  const sendLoveNote = () => {
+  const showToastNotification = (message: string) => {
+    setToastMessage(message);
+    setShowToast(true);
+    setTimeout(() => {
+      setShowToast(false);
+    }, 3000);
+  };
+
+  const sendLoveNote = async () => {
     if (newNote.trim()) {
-      addLoveNote(currentUser || 'You', newNote.trim());
-      setNewNote('');
+      try {
+        await addLoveNote(currentUser || 'You', newNote.trim());
+        setNewNote('');
+        showToastNotification('💕 Note sent successfully!');
+      } catch (error) {
+        showToastNotification('❌ Failed to send note. Try again.');
+      }
     }
   };
 
@@ -397,6 +421,18 @@ function App() {
 
   return (
     <div className="min-h-screen w-full bg-slate-900">
+      {/* Toast Notification */}
+      {showToast && (
+        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 toast-enter">
+          <div className="bg-gradient-to-r from-blue-600 to-cyan-500 text-white px-6 py-3 rounded-full shadow-lg border border-blue-400/30 backdrop-blur-sm toast-glow">
+            <div className="flex items-center space-x-2">
+              <span className="text-lg font-medium">{toastMessage}</span>
+              <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="max-w-md mx-auto bg-slate-800/50 backdrop-blur-lg min-h-screen w-full relative main-content">
         {/* Header */}
         <div className="bg-slate-800/80 backdrop-blur-lg p-6 text-white border-b border-blue-500/30">
@@ -546,7 +582,7 @@ function App() {
                   />
                   <button 
                     onClick={sendLoveNote}
-                    className="bg-blue-500 hover:bg-blue-600 text-white p-2 rounded-xl transition-colors duration-200"
+                    className="bg-blue-500 hover:bg-blue-600 text-white p-2 rounded-xl transition-all duration-200 hover:scale-110 active:scale-95 hover:shadow-lg hover:shadow-blue-500/25"
                   >
                     <Send size={16} />
                   </button>
@@ -611,8 +647,8 @@ function App() {
                 bucketList.map((item) => (
                   <div key={item.id} className="bg-slate-800/50 backdrop-blur-sm rounded-2xl p-4 border border-blue-500/30">
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center">
-                        <div className="w-6 h-6 border-2 border-pink-300 rounded-full mr-3 flex-shrink-0"></div>
+                  <div className="flex items-center">
+                    <div className="w-6 h-6 border-2 border-pink-300 rounded-full mr-3 flex-shrink-0"></div>
                         <p className="text-white font-medium">{item.item}</p>
                       </div>
                       <button 
@@ -658,8 +694,8 @@ function App() {
                     note.from_user === currentUser 
                       ? 'bg-blue-600/20 ml-8' 
                       : 'bg-blue-500/20 mr-8'
-                  }`}>
-                    <div className="flex items-center justify-between mb-2">
+                }`}>
+                  <div className="flex items-center justify-between mb-2">
                       <span className="text-white font-semibold text-sm">{note.from_user}</span>
                       <span className="text-white/60 text-xs">
                         {new Date(note.created_at).toLocaleTimeString('en-US', { 
@@ -668,9 +704,9 @@ function App() {
                           hour12: false 
                         })}
                       </span>
-                    </div>
-                    <p className="text-white/90 text-sm">{note.message}</p>
                   </div>
+                  <p className="text-white/90 text-sm">{note.message}</p>
+                </div>
                 ))
               )}
             </div>
@@ -729,7 +765,7 @@ function App() {
             </div>
           )}
         </div>
-      </div>
+        </div>
 
       {/* Bottom Navigation - Outside main container */}
       <div className="fixed bottom-0 left-0 right-0 z-50 bg-slate-800/90 backdrop-blur-lg border-t border-blue-500/30">

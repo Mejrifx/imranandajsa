@@ -177,6 +177,41 @@ body {
 }
 
 /* Add padding to main content to account for fixed nav */
-.main-content {
-  padding-bottom: 80px;
-}
+  .main-content {
+    padding-bottom: 80px;
+  }
+
+  /* Toast notification animations */
+  @keyframes slideInDown {
+    from {
+      transform: translate(-50%, -100%);
+      opacity: 0;
+    }
+    to {
+      transform: translate(-50%, 0);
+      opacity: 1;
+    }
+  }
+
+  @keyframes slideOutUp {
+    from {
+      transform: translate(-50%, 0);
+      opacity: 1;
+    }
+    to {
+      transform: translate(-50%, -100%);
+      opacity: 0;
+    }
+  }
+
+  .toast-enter {
+    animation: slideInDown 0.5s ease-out;
+  }
+
+  .toast-exit {
+    animation: slideOutUp 0.3s ease-in;
+  }
+
+  .toast-glow {
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.5), 0 0 40px rgba(59, 130, 246, 0.3);
+  }
