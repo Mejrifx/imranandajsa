@@ -95,7 +95,6 @@ function App() {
   });
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
-  const [moodTextTimeout, setMoodTextTimeout] = useState<NodeJS.Timeout | null>(null);
 
   // Check for existing login session
   useEffect(() => {
@@ -190,18 +189,18 @@ function App() {
     }
   };
 
-  // Save moods to Supabase when they change
+  // Save moods to Supabase when emoji changes (text is saved manually)
   useEffect(() => {
     if (currentUser === 'Imran' && moodImran) {
       saveMood('Imran', moodImran, moodTextImran);
     }
-  }, [moodImran, moodTextImran, currentUser]);
+  }, [moodImran, currentUser]);
 
   useEffect(() => {
     if (currentUser === 'Ajsa' && moodAjsa) {
       saveMood('Ajsa', moodAjsa, moodTextAjsa);
     }
-  }, [moodAjsa, moodTextAjsa, currentUser]);
+  }, [moodAjsa, currentUser]);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -549,32 +548,47 @@ function App() {
                 </div>
                 <div>
                   <label className="text-white/80 text-sm font-medium block mb-2">Your mood today:</label>
-                  <input
-                    type="text"
-                    value={currentUser === 'Imran' ? moodTextImran : moodTextAjsa}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      if (currentUser === 'Imran') {
-                        setMoodTextImran(value);
-                        // Debounce the save
-                        if (moodTextTimeout) clearTimeout(moodTextTimeout);
-                        const timeout = setTimeout(() => {
-                          saveMood('Imran', moodImran, value);
-                        }, 1000);
-                        setMoodTextTimeout(timeout);
-                      } else {
-                        setMoodTextAjsa(value);
-                        // Debounce the save
-                        if (moodTextTimeout) clearTimeout(moodTextTimeout);
-                        const timeout = setTimeout(() => {
-                          saveMood('Ajsa', moodAjsa, value);
-                        }, 1000);
-                        setMoodTextTimeout(timeout);
-                      }
-                    }}
-                    placeholder="How are you feeling today?"
-                    className="w-full bg-slate-700/50 border border-blue-500/30 rounded-xl px-4 py-2 text-white placeholder-white/60 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
-                  />
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={currentUser === 'Imran' ? moodTextImran : moodTextAjsa}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        if (currentUser === 'Imran') {
+                          setMoodTextImran(value);
+                        } else {
+                          setMoodTextAjsa(value);
+                        }
+                      }}
+                      onKeyPress={(e) => {
+                        if (e.key === 'Enter') {
+                          if (currentUser === 'Imran') {
+                            saveMood('Imran', moodImran, moodTextImran);
+                            showToastNotification('😊 Mood text saved!');
+                          } else {
+                            saveMood('Ajsa', moodAjsa, moodTextAjsa);
+                            showToastNotification('😊 Mood text saved!');
+                          }
+                        }
+                      }}
+                      placeholder="How are you feeling today?"
+                      className="flex-1 bg-slate-700/50 border border-blue-500/30 rounded-xl px-4 py-2 text-white placeholder-white/60 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
+                    />
+                    <button
+                      onClick={() => {
+                        if (currentUser === 'Imran') {
+                          saveMood('Imran', moodImran, moodTextImran);
+                          showToastNotification('😊 Mood text saved!');
+                        } else {
+                          saveMood('Ajsa', moodAjsa, moodTextAjsa);
+                          showToastNotification('😊 Mood text saved!');
+                        }
+                      }}
+                      className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-xl transition-all duration-200 hover:scale-105 active:scale-95 hover:shadow-lg hover:shadow-blue-500/25 flex items-center"
+                    >
+                      <Send size={16} />
+                    </button>
+                  </div>
                 </div>
               </div>
 
