@@ -381,8 +381,15 @@ function App() {
   };
 
   const handlePhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    console.log('File input changed:', event.target.files);
     const file = event.target.files?.[0];
-    if (!file) return;
+    
+    if (!file) {
+      console.log('No file selected');
+      return;
+    }
+
+    console.log('File selected:', file.name, file.type, file.size);
 
     // Validate file type
     if (!file.type.startsWith('image/')) {
@@ -397,12 +404,14 @@ function App() {
     }
 
     setIsUploadingPhoto(true);
+    showToastNotification('📸 Processing image...');
 
     try {
       // Convert file to base64 data URL
       const reader = new FileReader();
       reader.onload = async (e) => {
         const dataUrl = e.target?.result as string;
+        console.log('Image converted to base64, length:', dataUrl.length);
         
         // Ask for caption
         const caption = prompt('Add a caption (optional):') || '';
@@ -414,6 +423,13 @@ function App() {
         event.target.value = '';
         setIsUploadingPhoto(false);
       };
+      
+      reader.onerror = (error) => {
+        console.error('FileReader error:', error);
+        showToastNotification('❌ Error reading image file');
+        setIsUploadingPhoto(false);
+      };
+      
       reader.readAsDataURL(file);
     } catch (error) {
       console.error('Error processing image:', error);
@@ -966,16 +982,36 @@ function App() {
                     accept="image/*"
                     capture="environment"
                     onChange={handlePhotoUpload}
-                    className="hidden"
+                    style={{ 
+                      position: 'absolute',
+                      left: '-9999px',
+                      opacity: 0,
+                      pointerEvents: 'none'
+                    }}
                     id="photo-upload"
                     multiple={false}
                   />
-                  <label
-                    htmlFor="photo-upload"
-                    className={`w-full py-3 rounded-xl font-semibold transition-all duration-300 shadow-lg flex items-center justify-center gap-2 cursor-pointer ${
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault();
+                      console.log('Button clicked, looking for file input...');
+                      const fileInput = document.getElementById('photo-upload') as HTMLInputElement;
+                      console.log('File input found:', fileInput);
+                      if (fileInput) {
+                        console.log('Triggering file input click...');
+                        // Force focus and click
+                        fileInput.focus();
+                        fileInput.click();
+                      } else {
+                        console.error('File input not found!');
+                        showToastNotification('❌ File input not found. Please refresh the page.');
+                      }
+                    }}
+                    disabled={isUploadingPhoto}
+                    className={`w-full py-3 rounded-xl font-semibold transition-all duration-300 shadow-lg flex items-center justify-center gap-2 ${
                       isUploadingPhoto 
                         ? 'bg-gray-600 text-gray-300 cursor-not-allowed' 
-                        : 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white hover:scale-[1.02] hover:shadow-blue-500/25'
+                        : 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white hover:scale-[1.02] hover:shadow-blue-500/25 cursor-pointer'
                     }`}
                   >
                     {isUploadingPhoto ? (
@@ -989,7 +1025,7 @@ function App() {
                         Add Today's Pic
                       </>
                     )}
-                  </label>
+                  </button>
                   <p className="text-xs text-blue-200/80 text-center mt-2">
                     Tap to take a photo or select from gallery
                   </p>
