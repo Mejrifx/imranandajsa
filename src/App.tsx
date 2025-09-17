@@ -99,19 +99,25 @@ function App() {
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [birthdays, setBirthdays] = useState<{user_name: string, birth_date: string}[]>([]);
+  
+  // Loading states for each section
+  const [isLoadingMovies, setIsLoadingMovies] = useState(false);
+  const [isLoadingFavorites, setIsLoadingFavorites] = useState(false);
+  const [isLoadingBucketList, setIsLoadingBucketList] = useState(false);
+  const [isLoadingNotes, setIsLoadingNotes] = useState(false);
+  const [isLoadingPhotos, setIsLoadingPhotos] = useState(false);
+  const [isLoadingBirthdays, setIsLoadingBirthdays] = useState(false);
+  const [isLoadingMoods, setIsLoadingMoods] = useState(false);
 
-  // Check for existing login session
+  // Check for existing login session and load data
   useEffect(() => {
     const savedUser = localStorage.getItem('together-current-user');
     if (savedUser && (savedUser === 'Imran' || savedUser === 'Ajsa')) {
       setCurrentUser(savedUser);
       setIsLoggedIn(true);
+      // Load data after setting user
+      loadAllData();
     }
-  }, []);
-
-  // Load data from Supabase on component mount
-  useEffect(() => {
-    loadAllData();
   }, []);
 
   // Reload shared data when user changes
@@ -121,97 +127,282 @@ function App() {
     }
   }, [currentUser]);
 
-  // Supabase functions
-  const loadAllData = async () => {
-    await Promise.all([
-      loadNotes(),
-      loadMovies(),
-      loadFavorites(),
-      loadBucketList(),
-      loadMoods(),
-      loadDailyPhotos(),
-      loadBirthdays()
-    ]);
-  };
+  // Set up real-time subscriptions
+  useEffect(() => {
+    if (!currentUser) return;
 
-  const loadNotes = async () => {
-    const { data, error } = await supabase
-      .from('notes')
-      .select('*')
-      .order('created_at', { ascending: false });
-    
-    if (error) console.error('Error loading notes:', error);
-    else setLoveNotes(data || []);
-  };
+    // Subscribe to movies changes
+    const moviesSubscription = supabase
+      .channel('movies-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'movies' }, () => {
+        loadMovies();
+      })
+      .subscribe();
 
-  const loadMovies = async () => {
-    const { data, error } = await supabase
-      .from('movies')
-      .select('*')
-      .order('created_at', { ascending: false });
-    
-    if (error) console.error('Error loading movies:', error);
-    else setMovies(data || []);
-  };
+    // Subscribe to favorites changes
+    const favoritesSubscription = supabase
+      .channel('favorites-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'favorites' }, () => {
+        loadFavorites();
+      })
+      .subscribe();
 
-  const loadFavorites = async () => {
-    const { data, error } = await supabase
-      .from('favorites')
-      .select('*')
-      .order('created_at', { ascending: false });
-    
-    if (error) console.error('Error loading favorites:', error);
-    else setFavorites(data || []);
-  };
+    // Subscribe to bucket list changes
+    const bucketListSubscription = supabase
+      .channel('bucket-list-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'bucket_list' }, () => {
+        loadBucketList();
+      })
+      .subscribe();
 
-  const loadBucketList = async () => {
-    const { data, error } = await supabase
-      .from('bucket_list')
-      .select('*')
-      .order('created_at', { ascending: false });
-    
-    if (error) console.error('Error loading bucket list:', error);
-    else setBucketList(data || []);
-  };
+    // Subscribe to notes changes
+    const notesSubscription = supabase
+      .channel('notes-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'notes' }, () => {
+        loadNotes();
+      })
+      .subscribe();
 
-  const loadMoods = async () => {
-    const { data, error } = await supabase
-      .from('user_moods')
-      .select('*');
-    
-    if (error) console.error('Error loading moods:', error);
-    else if (data) {
-      const imranMood = data.find(m => m.user_name === 'Imran');
-      const ajsaMood = data.find(m => m.user_name === 'Ajsa');
-      
-      if (imranMood) {
-        setMoodImran(imranMood.mood_emoji);
-        setMoodTextImran(imranMood.mood_text);
-      }
-      if (ajsaMood) {
-        setMoodAjsa(ajsaMood.mood_emoji);
-        setMoodTextAjsa(ajsaMood.mood_text);
+    // Subscribe to daily photos changes
+    const photosSubscription = supabase
+      .channel('daily-photos-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'daily_photos' }, () => {
+        loadDailyPhotos();
+      })
+      .subscribe();
+
+    // Subscribe to moods changes
+    const moodsSubscription = supabase
+      .channel('moods-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'user_moods' }, () => {
+        loadMoods();
+      })
+      .subscribe();
+
+    // Subscribe to birthdays changes
+    const birthdaysSubscription = supabase
+      .channel('birthdays-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'birthdays' }, () => {
+        loadBirthdays();
+      })
+      .subscribe();
+
+    // Cleanup subscriptions on unmount
+    return () => {
+      moviesSubscription.unsubscribe();
+      favoritesSubscription.unsubscribe();
+      bucketListSubscription.unsubscribe();
+      notesSubscription.unsubscribe();
+      photosSubscription.unsubscribe();
+      moodsSubscription.unsubscribe();
+      birthdaysSubscription.unsubscribe();
+    };
+  }, [currentUser]);
+
+  // Supabase functions with retry logic
+  const retryRequest = async (fn: () => Promise<any>, maxRetries = 3): Promise<any> => {
+    for (let i = 0; i < maxRetries; i++) {
+      try {
+        return await fn();
+      } catch (error) {
+        console.log(`Attempt ${i + 1} failed:`, error);
+        if (i === maxRetries - 1) throw error;
+        await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1))); // Exponential backoff
       }
     }
   };
 
+  const loadAllData = async () => {
+    try {
+      await Promise.all([
+        loadNotes(),
+        loadMovies(),
+        loadFavorites(),
+        loadBucketList(),
+        loadMoods(),
+        loadDailyPhotos(),
+        loadBirthdays()
+      ]);
+    } catch (error) {
+      console.error('Error loading data:', error);
+      showToastMessage('Failed to load some data. Please refresh the page.');
+    }
+  };
+
+  const loadNotes = async () => {
+    setIsLoadingNotes(true);
+    try {
+      const { data, error } = await retryRequest(async () => {
+        return await supabase
+          .from('notes')
+          .select('*')
+          .order('created_at', { ascending: false });
+      });
+      
+      if (error) {
+        console.error('Error loading notes:', error);
+        showToastMessage('Failed to load notes');
+      } else {
+        setLoveNotes(data || []);
+      }
+    } catch (error) {
+      console.error('Failed to load notes after retries:', error);
+      showToastMessage('Failed to load notes');
+    } finally {
+      setIsLoadingNotes(false);
+    }
+  };
+
+  const loadMovies = async () => {
+    setIsLoadingMovies(true);
+    try {
+      const { data, error } = await retryRequest(async () => {
+        return await supabase
+          .from('movies')
+          .select('*')
+          .order('created_at', { ascending: false });
+      });
+      
+      if (error) {
+        console.error('Error loading movies:', error);
+        showToastMessage('Failed to load movies');
+      } else {
+        setMovies(data || []);
+      }
+    } catch (error) {
+      console.error('Failed to load movies after retries:', error);
+      showToastMessage('Failed to load movies');
+    } finally {
+      setIsLoadingMovies(false);
+    }
+  };
+
+  const loadFavorites = async () => {
+    setIsLoadingFavorites(true);
+    try {
+      const { data, error } = await retryRequest(async () => {
+        return await supabase
+          .from('favorites')
+          .select('*')
+          .order('created_at', { ascending: false });
+      });
+      
+      if (error) {
+        console.error('Error loading favorites:', error);
+        showToastMessage('Failed to load favorites');
+      } else {
+        setFavorites(data || []);
+      }
+    } catch (error) {
+      console.error('Failed to load favorites after retries:', error);
+      showToastMessage('Failed to load favorites');
+    } finally {
+      setIsLoadingFavorites(false);
+    }
+  };
+
+  const loadBucketList = async () => {
+    setIsLoadingBucketList(true);
+    try {
+      const { data, error } = await retryRequest(async () => {
+        return await supabase
+          .from('bucket_list')
+          .select('*')
+          .order('created_at', { ascending: false });
+      });
+      
+      if (error) {
+        console.error('Error loading bucket list:', error);
+        showToastMessage('Failed to load bucket list');
+      } else {
+        setBucketList(data || []);
+      }
+    } catch (error) {
+      console.error('Failed to load bucket list after retries:', error);
+      showToastMessage('Failed to load bucket list');
+    } finally {
+      setIsLoadingBucketList(false);
+    }
+  };
+
+  const loadMoods = async () => {
+    setIsLoadingMoods(true);
+    try {
+      const { data, error } = await retryRequest(async () => {
+        return await supabase
+          .from('user_moods')
+          .select('*');
+      });
+      
+      if (error) {
+        console.error('Error loading moods:', error);
+        showToastMessage('Failed to load moods');
+      } else if (data) {
+        const imranMood = data.find(m => m.user_name === 'Imran');
+        const ajsaMood = data.find(m => m.user_name === 'Ajsa');
+        
+        if (imranMood) {
+          setMoodImran(imranMood.mood_emoji);
+          setMoodTextImran(imranMood.mood_text);
+        }
+        if (ajsaMood) {
+          setMoodAjsa(ajsaMood.mood_emoji);
+          setMoodTextAjsa(ajsaMood.mood_text);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load moods after retries:', error);
+      showToastMessage('Failed to load moods');
+    } finally {
+      setIsLoadingMoods(false);
+    }
+  };
+
   const loadDailyPhotos = async () => {
-    const { data, error } = await supabase
-      .from('daily_photos')
-      .select('*')
-      .order('photo_date', { ascending: false });
-    
-    if (error) console.error('Error loading daily photos:', error);
-    else setDailyPhotos(data || []);
+    setIsLoadingPhotos(true);
+    try {
+      const { data, error } = await retryRequest(async () => {
+        return await supabase
+          .from('daily_photos')
+          .select('*')
+          .order('photo_date', { ascending: false });
+      });
+      
+      if (error) {
+        console.error('Error loading daily photos:', error);
+        showToastMessage('Failed to load photos');
+      } else {
+        setDailyPhotos(data || []);
+      }
+    } catch (error) {
+      console.error('Failed to load daily photos after retries:', error);
+      showToastMessage('Failed to load photos');
+    } finally {
+      setIsLoadingPhotos(false);
+    }
   };
 
   const loadBirthdays = async () => {
-    const { data, error } = await supabase
-      .from('birthdays')
-      .select('*');
-    
-    if (error) console.error('Error loading birthdays:', error);
-    else setBirthdays(data || []);
+    setIsLoadingBirthdays(true);
+    try {
+      const { data, error } = await retryRequest(async () => {
+        return await supabase
+          .from('birthdays')
+          .select('*');
+      });
+      
+      if (error) {
+        console.error('Error loading birthdays:', error);
+        showToastMessage('Failed to load birthdays');
+      } else {
+        setBirthdays(data || []);
+      }
+    } catch (error) {
+      console.error('Failed to load birthdays after retries:', error);
+      showToastMessage('Failed to load birthdays');
+    } finally {
+      setIsLoadingBirthdays(false);
+    }
   };
 
   const saveBirthday = async (userName: string, birthDate: string) => {
@@ -746,7 +937,17 @@ function App() {
                   Movies we should watch eventually...
                 </p>
                 <div className="space-y-2 mb-3">
-                  {movies.map((movie) => (
+                  {isLoadingMovies ? (
+                    <div className="flex items-center justify-center py-4">
+                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-300"></div>
+                      <span className="ml-2 text-blue-300 text-sm">Loading movies...</span>
+                    </div>
+                  ) : movies.length === 0 ? (
+                    <div className="text-center py-4 text-blue-300 text-sm">
+                      No movies added yet
+                    </div>
+                  ) : (
+                    movies.map((movie) => (
                     <div key={movie.id} className="bg-slate-800/50 rounded-lg p-2 flex justify-between items-center">
                       <span className="text-white text-sm">{movie.title}</span>
                       <span className="text-xs">
@@ -761,7 +962,8 @@ function App() {
                         })}</span>
                       </span>
                     </div>
-                  ))}
+                    ))
+                  )}
                 </div>
                 <button 
                   onClick={() => {
@@ -811,7 +1013,17 @@ function App() {
               </div>
 
               <div className="grid grid-cols-2 gap-3">
-                {favorites.map((item) => (
+                {isLoadingFavorites ? (
+                  <div className="col-span-2 flex items-center justify-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-300"></div>
+                    <span className="ml-2 text-blue-300 text-sm">Loading favorites...</span>
+                  </div>
+                ) : favorites.length === 0 ? (
+                  <div className="col-span-2 text-center py-8 text-blue-300 text-sm">
+                    No favorites added yet
+                  </div>
+                ) : (
+                  favorites.map((item) => (
                   <div key={item.id} className="bg-slate-800/50 backdrop-blur-sm rounded-2xl p-4 text-center border border-blue-500/30">
                     <div className="text-3xl mb-2">{item.emoji}</div>
                     <h3 className="text-white font-semibold text-sm">{item.name}</h3>
@@ -826,7 +1038,8 @@ function App() {
                       Remove
                     </button>
                   </div>
-                ))}
+                  ))
+                )}
                 
                 <button 
                   onClick={() => {
@@ -868,6 +1081,11 @@ function App() {
                   <h3 className="text-white font-semibold text-lg mb-2">Your Bucket List Awaits</h3>
                   <p className="text-blue-200/80 text-sm leading-relaxed">Start adding your dreams and goals. Every journey begins with a single step!</p>
                 </div>
+              ) : isLoadingBucketList ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-300"></div>
+                  <span className="ml-2 text-blue-300 text-sm">Loading bucket list...</span>
+                </div>
               ) : (
                 bucketList.map((item, index) => (
                   <div key={item.id} className="group bg-gradient-to-r from-slate-800/60 to-slate-700/60 backdrop-blur-sm rounded-xl p-4 border border-blue-400/20 hover:border-blue-400/40 transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/10">
@@ -895,8 +1113,8 @@ function App() {
                       </button>
                     </div>
                   </div>
-                ))
-              )}
+                  ))
+                )}
 
               <button 
                 onClick={() => {
@@ -926,6 +1144,11 @@ function App() {
                 <div className="text-center py-8">
                   <MessageCircle className="text-white/50 mx-auto mb-3" size={48} />
                   <p className="text-white/70 text-sm">No notes yet. Start sharing your thoughts!</p>
+                </div>
+              ) : isLoadingNotes ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-300"></div>
+                  <span className="ml-2 text-blue-300 text-sm">Loading notes...</span>
                 </div>
               ) : (
                 <div className="space-y-4">
@@ -960,7 +1183,7 @@ function App() {
                   </div>
                   ))}
                 </div>
-              )}
+                )}
             </div>
           )}
 
@@ -1040,6 +1263,11 @@ function App() {
                     <Camera className="text-white/50 mx-auto mb-2" size={32} />
                     <p className="text-white/70 text-sm">No pics shared yet</p>
                   </div>
+                ) : isLoadingPhotos ? (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-300"></div>
+                    <span className="ml-2 text-blue-300 text-sm">Loading photos...</span>
+                  </div>
                 ) : (
                   <div className="space-y-3">
                     {dailyPhotos.slice(0, 3).map((photo) => (
@@ -1078,7 +1306,7 @@ function App() {
                       </p>
                     )}
                   </div>
-                )}
+                  )}
               </div>
 
               {/* Our Birthdays - Replaced Quick Tips */}
@@ -1111,6 +1339,11 @@ function App() {
                   <div className="text-center py-4">
                     <Heart className="text-white/50 mx-auto mb-2" size={32} />
                     <p className="text-white/70 text-sm">No birthdays set yet</p>
+                  </div>
+                ) : isLoadingBirthdays ? (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-300"></div>
+                    <span className="ml-2 text-blue-300 text-sm">Loading birthdays...</span>
                   </div>
                 ) : (
                   <div className="space-y-3">
@@ -1147,7 +1380,7 @@ function App() {
                       );
                     })}
                   </div>
-                )}
+                  )}
               </div>
 
               <div className="bg-slate-800/50 backdrop-blur-sm rounded-2xl p-4 border border-blue-500/30">
